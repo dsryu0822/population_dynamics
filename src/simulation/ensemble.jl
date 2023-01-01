@@ -4,7 +4,7 @@ using Random, Distributions
 # using Base.Threads
 
 const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
-const female_ratio = 20 / 41
+const female_ratio = 100 / (105 + 100) # 성비는 남:여 = 105:100
 
 include("simulation.jl")
 
@@ -28,7 +28,14 @@ const tensor_mortality = reshape(MORTALITY.y2021, 100, 17, 2) ./ tensor_populati
 MOBLITY = CSV.read("data/KOSIS/mobility.csv", DataFrame)
 rename!(MOBLITY, ["from", "to", "gender", "age", years...])
 MOBLITY = MOBLITY[:, [1,2,3,4,end]]
-const tensor_mobility = reshape(MOBLITY.y2021, 17, 2, 17, 17)
+
+pop5 = vec(sum(reshape(POPULATION.y2021, 5, :), dims = 1))
+pop5 = reshape(pop5, 20, :)
+pop5[17,:] = sum(pop5[17:end,:], dims = 1)  # 가장 아래에 있는 4행은 80세 이상
+pop5 = pop5[1:17, :] # mobility랑 칸수를 맞추기 위해 제거, 34열 = 2성별 * 17시도
+pop5 = reshape(pop5, 34, :) # 성별이 먼저 나오기 때문에 같이 복제되어야함
+pop5 = repeat(pop5, 17) # 17개 전입지별로 복제
+const tensor_mobility = reshape(MOBLITY.y2021 ./ vec(pop5), 17, 2, 17, 17)
 # tensor_mobility[a5, gen+1, to, from]
 
 FERTILITY = CSV.read("data/KOSIS/fertility.csv", DataFrame)
@@ -38,5 +45,6 @@ const tensor_fertility = parse.(Float64, Matrix(FERTILITY[:, Not(1)]))
 
 println("Simulation start: ")
 Threads.@threads for seed ∈ 1:10
+# for seed ∈ 1:10
     simulation(seed, POPULATION)
 end
