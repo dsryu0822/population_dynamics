@@ -48,6 +48,9 @@ function simulation(seed, POPULATION)
         location_[pidx[died]] .= -18
     end
     POPULATION[!, string('y', t)] = population
+    println(Dates.now())
+    CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", POPULATION, encoding = "UTF-8", bom = true)
+    
     location_[age_ .≥ 100] .= -18
     bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:18)])
     # 죽음 끝
@@ -80,6 +83,5 @@ function simulation(seed, POPULATION)
     append!(location_, vcat([repeat([loc], birth_location[-loc]) for loc ∈ -(1:17)]...))
     # 출산 끝
 
-    CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", POPULATION, encoding = "UTF-8", bom = true)
     end
 end

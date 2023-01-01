@@ -1,7 +1,7 @@
 using CSV, DataFrames
 using Dates
 using Random, Distributions
-using Base.Threads
+# using Base.Threads
 
 const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
 const female_ratio = 20 / 41
@@ -37,6 +37,6 @@ rename!(FERTILITY, ["location", ("a" .* string.(15:5:45))...])
 const tensor_fertility = parse.(Float64, Matrix(FERTILITY[:, Not(1)]))
 
 println("Simulation start: ")
-@threads for seed ∈ 1:10
+Threads.@threads for seed ∈ 1:10
     simulation(seed, POPULATION)
 end
