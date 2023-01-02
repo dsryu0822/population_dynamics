@@ -28,10 +28,11 @@ end
 
 function simulation(seed, POPULATION)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
+    traj = deepcopy(POPULATION)
     Random.seed!(seed)
 
-    tend = 2050
-    for t in 2021:2100
+    tend = 2100
+    for t in 2021:tend
 
     # 죽음 시작
     print('|')
@@ -51,9 +52,9 @@ function simulation(seed, POPULATION)
             location_[pidx[died]] .= -18
         end
     end
-    POPULATION[!, string('y', t)] = population
+    traj[!, string('y', t)] = population
     println(Dates.now())
-    CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", POPULATION, encoding = "UTF-8", bom = true)
+    CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", traj, encoding = "UTF-8", bom = true)
     if t == tend break end
     location_[age_ .≥ 100] .= -18
     bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:17)])
@@ -82,11 +83,11 @@ function simulation(seed, POPULATION)
 
             if gen .&& (15 ≤ a ≤ 45)
                 β = tensor_fertility[-loc, aidx - 3]
-                birth_location[-loc] += trunc(Int64, npop*β/1000)
+                birth_location[-loc] += sum(rand(Bernoulli(min(1, β/1000)), npop))
             end
         end
     end
-    age_ .+= 1
+    age_[location_ .!= (-18)] .+= 1
     append!(gender_, rand(Bernoulli(female_ratio), sum(birth_location))) # 성비는 남:여 = 105:100
     append!(age_, zeros(Int8, sum(birth_location)))
     append!(location_, vcat([repeat([loc], birth_location[-loc]) for loc ∈ -(1:17)]...))
