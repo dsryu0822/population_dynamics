@@ -28,7 +28,7 @@ function simulation(seed, POPULATION)
     traj = deepcopy(POPULATION)
     Random.seed!(seed)
 
-    tend = 2100
+    tend = 2050
     for t in 2021:tend
 
     # 죽음 시작
@@ -36,15 +36,24 @@ function simulation(seed, POPULATION)
     bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:18)])
     bit_age_ = Dict([a => (age_ .== a) for a ∈ 0:100])
     bit_gender_ = Dict([gen => (gender_ .== gen) for gen ∈ [false, true]])
-    totalpop = length(location_)
-    Cu_location_ = CuArray(location_)
+    # totalpop = length(location_)
+    # Cu_location_ = CuArray(location_)
     
     population = Int64[]
     for loc ∈ -(1:17), gen ∈ [false, true]
-        bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # 지역이 17곳이므로 &&에선 앞에 있는게 빠름
+        bit_double = bit_location_[loc] .&& bit_gender_[gen] # CPU
+        # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # GPU
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
             μ = tensor_mortality[a+1, -loc, gen+1]
             # println("loc: $loc, gen: $gen, a: $a")
+
+            bit_triple = (bit_age_[a] .&& bit_double)
+            pidx = findall(bit_triple)
+            push!(population, length(pidx))
+            died = rand(Bernoulli(μ), length(pidx))
+            location_[pidx[died]] .= -18
+
+            # ▲ Pure CPU
 
             # bit_triple = (CuArray(bit_age_[a]) .&& bit_double) |> Array |> BitVector
             # pidx = findall(bit_triple) # 연령이 가장 spare하므로 &&에선 앞에 있는게 빠름
@@ -52,19 +61,19 @@ function simulation(seed, POPULATION)
             # died = rand(Bernoulli(μ), totalpop) # rand() .< μ 랑 속도는 같음
             # location_[pidx[died]] .= -18
 
-            # ▲ semiCPU ▼ GPU
+            # ▲ semiCPU ▼ GPU 이 방식이 단일 시뮬레이션으로 가장 빠름
 
-            bit_triple = (CuArray(bit_age_[a]) .&& bit_double)
-            push!(population, count(bit_triple))
-            bit_quadra = ((CUDA.rand(totalpop) .< μ) .&& bit_triple)
-            Cu_location_ = (Cu_location_ .* .!bit_quadra) - 18bit_quadra
-            CUDA.unsafe_free!(bit_quadra)
-            CUDA.unsafe_free!(bit_triple)
+            # bit_triple = (CuArray(bit_age_[a]) .&& bit_double)
+            # push!(population, count(bit_triple))
+            # bit_quadra = ((CUDA.rand(totalpop) .< μ) .&& bit_triple)
+            # Cu_location_ = (Cu_location_ .* .!bit_quadra) - 18bit_quadra
+            # CUDA.unsafe_free!(bit_quadra)
+            # CUDA.unsafe_free!(bit_triple)
         end
-        CUDA.unsafe_free!(bit_double)
+        # CUDA.unsafe_free!(bit_double)
     end
-    location_ = Array(Cu_location_)
-    CUDA.unsafe_free!(Cu_location_)
+    # location_ = Array(Cu_location_)
+    # CUDA.unsafe_free!(Cu_location_)
 
     traj[!, string('y', t)] = population
     println(Dates.now())
@@ -100,7 +109,7 @@ function simulation(seed, POPULATION)
             # 이동 끝
 
             if gen .&& (15 ≤ a ≤ 45)
-                β = tensor_fertility[-loc, aidx - 3]
+                β = tensor_fertility[-loc, aidx - 3] .* min(2, (1 + (0.1seed * (t-2021)/19)))
                 birth_location[-loc] += sum(rand(Bernoulli(min(1, β/1000)), npop))
             end
         end
