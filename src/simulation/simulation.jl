@@ -36,23 +36,36 @@ function simulation(seed, POPULATION)
     bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:18)])
     bit_age_ = Dict([a => (age_ .== a) for a ∈ 0:100])
     bit_gender_ = Dict([gen => (gender_ .== gen) for gen ∈ [false, true]])
+    totalpop = length(location_)
+    Cu_location_ = CuArray(location_)
+    
     population = Int64[]
     for loc ∈ -(1:17), gen ∈ [false, true]
         bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # 지역이 17곳이므로 &&에선 앞에 있는게 빠름
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
+            μ = tensor_mortality[a+1, -loc, gen+1]
             # println("loc: $loc, gen: $gen, a: $a")
-            bit_triple = (CuArray(bit_age_[a]) .&& bit_double) |> Array |> BitVector
-            pidx = findall(bit_triple) # 연령이 가장 spare하므로 &&에선 앞에 있는게 빠름
-            # CUDA.unsafe_free!(bit_triple)
-            push!(population, length(pidx))
 
-            μ = tensor_mortality[maximum(a)+1,-loc,gen+1]
-            died = rand(Bernoulli(μ), length(pidx)) # rand() .< μ 랑 속도는 같음
-            location_[pidx[died]] .= -18
+            # bit_triple = (CuArray(bit_age_[a]) .&& bit_double) |> Array |> BitVector
+            # pidx = findall(bit_triple) # 연령이 가장 spare하므로 &&에선 앞에 있는게 빠름
+            # push!(population, length(pidx))
+            # died = rand(Bernoulli(μ), totalpop) # rand() .< μ 랑 속도는 같음
+            # location_[pidx[died]] .= -18
+
+            # ▲ semiCPU ▼ GPU
+
+            bit_triple = (CuArray(bit_age_[a]) .&& bit_double)
+            push!(population, count(bit_triple))
+            bit_quadra = ((CUDA.rand(totalpop) .< μ) .&& bit_triple)
+            Cu_location_ = (Cu_location_ .* .!bit_quadra) - 18bit_quadra
+            CUDA.unsafe_free!(bit_quadra)
+            CUDA.unsafe_free!(bit_triple)
         end
         CUDA.unsafe_free!(bit_double)
     end
-    
+    location_ = Array(Cu_location_)
+    CUDA.unsafe_free!(Cu_location_)
+
     traj[!, string('y', t)] = population
     println(Dates.now())
     CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", traj, encoding = "UTF-8", bom = true)

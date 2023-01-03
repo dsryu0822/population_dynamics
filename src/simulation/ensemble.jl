@@ -46,7 +46,7 @@ rename!(FERTILITY, ["location", ("a" .* string.(15:5:45))...])
 const tensor_fertility = parse.(Float64, Matrix(FERTILITY[:, Not(1)]))
 
 println("Simulation start at $(Dates.now()): ")
-# for seed ∈ 1:10
-Threads.@threads for seed ∈ 1:10
+for seed ∈ 1:10
+# Threads.@threads for seed ∈ 1:10
     simulation(seed, POPULATION)
 end
