@@ -1,7 +1,9 @@
-using CSV, DataFrames
 using Dates
+println(Dates.now())
+
+using CUDA
+using CSV, DataFrames
 using Random, Distributions
-# using Base.Threads
 
 const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
 const female_ratio = 100 / (105 + 100) # 성비는 남:여 = 105:100
@@ -43,8 +45,8 @@ FERTILITY = FERTILITY[Not(1), [1,((end-6):end)...]]
 rename!(FERTILITY, ["location", ("a" .* string.(15:5:45))...])
 const tensor_fertility = parse.(Float64, Matrix(FERTILITY[:, Not(1)]))
 
-println("Simulation start: ")
-Threads.@threads for seed ∈ 1:10
+println("Simulation start at $(Dates.now()): ")
 # for seed ∈ 1:10
+Threads.@threads for seed ∈ 1:10
     simulation(seed, POPULATION)
 end
