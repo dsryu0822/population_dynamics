@@ -26,9 +26,10 @@ end
 function simulation(seed, POPULATION)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
+    dead = deepcopy(POPULATION)
     Random.seed!(seed)
 
-    tend = 2050
+    tend = 2100
     for t in 2021:tend
 
     # 죽음 시작
@@ -40,6 +41,7 @@ function simulation(seed, POPULATION)
     # Cu_location_ = CuArray(location_)
     
     population = Int64[]
+    death = Int64[]
     for loc ∈ -(1:17), gen ∈ [false, true]
         bit_double = bit_location_[loc] .&& bit_gender_[gen] # CPU
         # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # GPU
@@ -51,6 +53,7 @@ function simulation(seed, POPULATION)
             pidx = findall(bit_triple)
             push!(population, length(pidx))
             died = rand(Bernoulli(μ), length(pidx))
+            push!(death, count(died))
             location_[pidx[died]] .= -18
 
             # ▲ Pure CPU
@@ -76,8 +79,10 @@ function simulation(seed, POPULATION)
     # CUDA.unsafe_free!(Cu_location_)
 
     traj[!, string('y', t)] = population
+    dead[!, string('y', t)] = death
     println(Dates.now())
     CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", traj, encoding = "UTF-8", bom = true)
+    CSV.write("D:/dead $(lpad(seed, 4, '0')).csv", dead, encoding = "UTF-8", bom = true)
     if t == tend break end
 
     location_[age_ .≥ 100] .= -18
@@ -109,7 +114,7 @@ function simulation(seed, POPULATION)
             # 이동 끝
 
             if gen .&& (15 ≤ a ≤ 45)
-                β = tensor_fertility[-loc, aidx - 3] .* min(2, (1 + (0.1seed * (t-2021)/19)))
+                β = tensor_fertility[-loc, aidx - 3] # .* min(2, (1 + (0.1seed * (t-2021)/19)))
                 birth_location[-loc] += sum(rand(Bernoulli(min(1, β/1000)), npop))
             end
         end
