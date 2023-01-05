@@ -46,7 +46,7 @@ function simulation(seed, POPULATION)
         bit_double = bit_location_[loc] .&& bit_gender_[gen] # CPU
         # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # GPU
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
-            μ = tensor_mortality[a+1, -loc, gen+1]
+            μ = tensor_mortality[a+1, -loc, gen+1] * (1 + (ε * randn()))
             # println("loc: $loc, gen: $gen, a: $a")
 
             bit_triple = (bit_age_[a] .&& bit_double)
@@ -105,7 +105,7 @@ function simulation(seed, POPULATION)
             
             # 이동 시작
             npop = length(pidx)
-            σ = tensor_mobility[aidx, gen+1, :, -loc]
+            σ = tensor_mobility[aidx, gen+1, :, -loc] .* (1 .+ (ε * randn(17)))
             moved = reverse(trunc.(Int64, cumsum(σ) .* npop))
             for j in 1:17
                 location_[pidx[1:min(npop, moved[j])]] .= (j-18) # 인구수 이상으로는 이동 불가
@@ -113,8 +113,9 @@ function simulation(seed, POPULATION)
             end
             # 이동 끝
 
+            ε_a = ε * randn()
             if gen .&& (15 ≤ a ≤ 45)
-                β = tensor_fertility[-loc, aidx - 3] # .* min(2, (1 + (0.1seed * (t-2021)/19)))
+                β = tensor_fertility[-loc, aidx - 3] * (1 + ε_a)
                 birth_location[-loc] += sum(rand(Bernoulli(min(1, β/1000)), npop))
             end
         end
