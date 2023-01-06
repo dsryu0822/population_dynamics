@@ -23,6 +23,10 @@ function initializer(POPULATION, y)
     return location_, gender_, age_
 end
 
+function validizer(p)
+    return min(1, max(0, p))
+end
+
 function simulation(seed, POPULATION)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
@@ -46,7 +50,7 @@ function simulation(seed, POPULATION)
         bit_double = bit_location_[loc] .&& bit_gender_[gen] # CPU
         # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # GPU
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
-            μ = tensor_mortality[a+1, -loc, gen+1] * (1 + (ε * randn()))
+            μ = validizer(tensor_mortality[a+1, -loc, gen+1] * (1 + (ε * randn())))
             # println("loc: $loc, gen: $gen, a: $a")
 
             bit_triple = (bit_age_[a] .&& bit_double)
@@ -115,8 +119,8 @@ function simulation(seed, POPULATION)
 
             ε_a = ε * randn()
             if gen .&& (15 ≤ a ≤ 45)
-                β = tensor_fertility[-loc, aidx - 3] * (1 + ε_a)
-                birth_location[-loc] += sum(rand(Bernoulli(min(1, β/1000)), npop))
+                β = validizer((tensor_fertility[-loc, aidx - 3] * (1 + ε_a)) / 1000)
+                birth_location[-loc] += sum(rand(Bernoulli(β), npop))
             end
         end
         # CUDA.unsafe_free!(bit_double)

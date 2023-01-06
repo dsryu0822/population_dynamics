@@ -1,7 +1,7 @@
 using CSV, DataFrames, Plots
 default(lw = 2, size = (900, 400), xticks = 0:30:100)
 
-rslt_ = [CSV.read("D:/y2100/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:10]
+rslt_ = [CSV.read("D:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:10]
 
 tensor_rslt = reshape(rslt_[1][:, 4], 100, 2, 17);
 plot(sum(tensor_rslt[:, 1:2, 1], dims = 2), label = "2021")
@@ -55,7 +55,7 @@ plot(2021:2100, 부양인구 ./ (생산인구 + 부양인구), xticks = 2020:20:
 
 # ----------------
 
-rslt_ = [CSV.read("D:/control/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:10]
+rslt_ = [CSV.read("D:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:10]
 
 p2 = plot()
 for k ∈ 1:10

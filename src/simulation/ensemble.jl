@@ -7,7 +7,7 @@ using Random, Distributions
 
 const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
 const female_ratio = 100 / (105 + 100) # 성비는 남:여 = 105:100
-const ε = 0.05
+const ε = 0.2
 
 include("simulation.jl")
 
