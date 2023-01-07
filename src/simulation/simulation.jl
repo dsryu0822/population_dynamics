@@ -27,7 +27,7 @@ function validizer(p)
     return min(1, max(0, p))
 end
 
-function simulation(seed, POPULATION)
+function simulation(seed, POPULATION, MORTALITY)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
     dead = deepcopy(POPULATION)
