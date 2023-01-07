@@ -1,9 +1,9 @@
 
-MOBLITY = CSV.read("data/KOSIS/mobility.csv", DataFrame)
-rename!(MOBLITY, ["from", "to", "gender", "age", years...])
-MOBLITY = MOBLITY[:, [1,2,3,4,end]]
+MOBILITY = CSV.read("data/KOSIS/mobility.csv", DataFrame)
+rename!(MOBILITY, ["from", "to", "gender", "age", years...])
+MOBILITY = MOBILITY[:, [1,2,3,4,end]]
 
-migration_matrix = reshape(sum(reshape(MOBLITY.y2021, 17,2,17,17), dims = 1:2), 17, 17)
+migration_matrix = reshape(sum(reshape(MOBILITY.y2021, 17,2,17,17), dims = 1:2), 17, 17)
 for d ∈ 1:17 migration_matrix[d,d] = 0 end
 # 세로 전출, 가로 전출 ex) 서울 → 전출: 13078 in 2,1 of matrix
 
