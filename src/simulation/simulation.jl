@@ -31,6 +31,7 @@ function simulation(seed, POPULATION)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
     dead = deepcopy(POPULATION)
+    mgrn = deepcopy(MORTALITY)
     Random.seed!(seed)
 
     tend = 2100
@@ -41,14 +42,10 @@ function simulation(seed, POPULATION)
     bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:18)])
     bit_age_ = Dict([a => (age_ .== a) for a ∈ 0:100])
     bit_gender_ = Dict([gen => (gender_ .== gen) for gen ∈ [false, true]])
-    # totalpop = length(location_)
-    # Cu_location_ = CuArray(location_)
-    
     population = Int64[]
     death = Int64[]
     for loc ∈ -(1:17), gen ∈ [false, true]
         bit_double = bit_location_[loc] .&& bit_gender_[gen] # CPU
-        # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) # GPU
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
             μ = validizer(tensor_mortality[a+1, -loc, gen+1] * (1 + (ε * randn())))
             # println("loc: $loc, gen: $gen, a: $a")
@@ -97,22 +94,23 @@ function simulation(seed, POPULATION)
     bit_age5_ = Dict([a => (a .≤ age_ .< (a + 5)) for a ∈ 0:5:80])
     bit_age5_[80] = (80 .≤ age_)
     birth_location = zeros(Int64, 17)
-    for gen ∈ [false, true], loc ∈ -(1:17)
-        # bit_double = CuArray(bit_location_[loc]) .&& CuArray(bit_gender_[gen]) 
+    flow = Int64[]
+    for loc ∈ -(1:17), gen ∈ [false, true]
         bit_double = bit_location_[loc] .&& bit_gender_[gen]
         for a ∈ (0:5:80)
             aidx = (a ÷ 5) + 1
             bit_triple = bit_age5_[a] .&& bit_double
             pidx = shuffle(findall(bit_triple))
-            # CUDA.unsafe_free!(bit_triple)
-            # pidx = shuffle(findall(bit_location_[loc] .&& bit_gender_[gen] .&& bit_age5_[a])) # 죽음단계에서 속도 개선이 있을 경우 여기도 최적화
             
             # 이동 시작
             npop = length(pidx)
             σ = tensor_mobility[aidx, gen+1, :, -loc] .* (1 .+ (ε * randn(17)))
-            moved = reverse(trunc.(Int64, cumsum(σ) .* npop))
-            for j in 1:17
-                location_[pidx[1:min(npop, moved[j])]] .= (j-18) # 인구수 이상으로는 이동 불가
+            moved = trunc.(Int64, σ .* npop)
+            push!(flow, moved)
+            moved = reverse(cumsum(moved)) # 230107 작동 검증 안 됨
+            # moved = reverse(trunc.(Int64, cumsum(σ) .* npop))
+            for to in 1:17
+                location_[pidx[1:min(npop, moved[to])]] .= (to-18) # 인구수 이상으로는 이동 불가
                 # 자연스럽게 만약 다 못간다면 서울이 가장 우선시 됨
             end
             # 이동 끝
@@ -125,6 +123,8 @@ function simulation(seed, POPULATION)
         end
         # CUDA.unsafe_free!(bit_double)
     end
+    mgrn[!, string('y', t)] = flow
+    CSV.write("D:/mgrn $(lpad(seed, 4, '0')).csv", mgrn, encoding = "UTF-8", bom = true)
     age_[location_ .!= (-18)] .+= 1
     append!(gender_, rand(Bernoulli(female_ratio), sum(birth_location))) # 성비는 남:여 = 105:100
     append!(age_, zeros(Int8, sum(birth_location)))
