@@ -31,7 +31,7 @@ function simulation(seed, POPULATION)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
     dead = deepcopy(POPULATION)
-    mgrn = deepcopy(MORTALITY)
+    mgrn = deepcopy(MOBILITY)
     Random.seed!(seed)
 
     tend = 2100
@@ -104,9 +104,9 @@ function simulation(seed, POPULATION)
             
             # 이동 시작
             npop = length(pidx)
-            σ = tensor_mobility[aidx, gen+1, :, -loc] .* (1 .+ (ε * randn(17)))
+            σ = tensor_mobility[aidx, gen+1, :, -loc] # .* (1 .+ (ε * randn(17)))
             moved = trunc.(Int64, σ .* npop)
-            push!(flow, moved)
+            append!(flow, moved)
             moved = reverse(cumsum(moved)) # 230107 작동 검증 안 됨
             # moved = reverse(trunc.(Int64, cumsum(σ) .* npop))
             for to in 1:17
@@ -123,6 +123,7 @@ function simulation(seed, POPULATION)
         end
         # CUDA.unsafe_free!(bit_double)
     end
+    flow = vcat([vec(reshape(flow, 17, 34, :)[:,:,k]') for k ∈ 1:17]...) # 원본데이터와 일치하도록 수정
     mgrn[!, string('y', t)] = flow
     CSV.write("D:/mgrn $(lpad(seed, 4, '0')).csv", mgrn, encoding = "UTF-8", bom = true)
     age_[location_ .!= (-18)] .+= 1
