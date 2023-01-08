@@ -1,16 +1,3 @@
-using CSV, DataFrames, Plots
-
-name_location = ["Seoul","Busan","Daegu","Incheon","Gwangju","Daejeon","Ulsan","Sejong","Gyeonggi","Gangwon","Chungbuk","Chungnam","Jeonbuk","Jeonnam","Gyeongbuk","Gyeongnam","Jeju"]
-
-n_seed = 10
-yend = 2100
-
-rslt_ = [CSV.read("D:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
-dead_ = [CSV.read("D:/recent/dead $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
-for k in 1:n_seed
-    select!(rslt_[k], 1:(yend - 2017))
-    select!(dead_[k], 1:(yend - 2017))
-end
 
 p1 = plot()
 esbl = zeros(100, 2, 17)

@@ -5,7 +5,7 @@ MOBILITY = MOBILITY[:, [1,2,3,4,end]]
 
 migration_matrix = reshape(sum(reshape(MOBILITY.y2021, 17,2,17,17), dims = 1:2), 17, 17)
 for d ∈ 1:17 migration_matrix[d,d] = 0 end
-# 세로 전출, 가로 전출 ex) 서울 → 전출: 13078 in 2,1 of matrix
+# 세로 전출, 가로 전출 ex) 서울 → 부산: 13078 = M(2,1)
 
 heatmap(migration_matrix, size = (800, 800), ticks = [4,9,17], xlabel = "from", ylabel = "to")
 
