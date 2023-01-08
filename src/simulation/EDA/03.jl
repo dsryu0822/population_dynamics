@@ -1,10 +1,5 @@
 include("basic.jl")
 
-
-# bit_l =       rslt.age .< 15
-# bit_m = 15 .≤ rslt.age .< 65
-# bit_h = 65 .≤ rslt.age
-
 rslt = rslt_[1]
 dead = dead_[1]
 mgrn = mgrn_[1]
@@ -82,17 +77,3 @@ for k ∈ 1:17
     plot(pp1, pp2, pp3, pp4, layout = (2,2), size = (1200, 900))
     png("D:/figure/03 00 $k $(name_location[k]).png")
 end
-# filter(:age => x -> x < 15, df)
-
-
-# temp = mtrx_mgrn[diridx, diridx]
-# temp[1:3,1:3] .= 0
-# temp[4:17,4:17] .= 0
-# diridx = [1,4,9,2,3,5,6,7,8,(10:17)...]
-# invidx = [1,4,5,2,6,7,8,9,3,(10:17)...]
-# mtrx_mgrn_수도지방 = temp[invidx, invidx]
-
-# mtrx_mgrn
-# mgrn = mgrn_[1]
-
-# 2021:yend
