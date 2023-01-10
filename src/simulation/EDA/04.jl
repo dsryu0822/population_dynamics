@@ -40,39 +40,39 @@ for k ∈ 1:17
         push!(유출, sum(mtrx_mgrn[:, k]))
     end
     
-    pp1 = plot(xticks = 0:30:99, title = "$k $(name_location[k])", xlabel = "age", ylabel = "population", legend = :outertopright)
+    pp1 = plot(xticks = 0:30:99, title = "$k $(name_location[k])", xlabel = "age", ylabel = "Population", legend = :outertopright)
     plot!(pp1, 0:99, combine(groupby(df, :age), :y2021 => sum => :pyramid).pyramid, label = "2021", lw = 2, color = :black)
-    plot!(pp1, 0:99, combine(groupby(df, :age), :y2050 => sum => :pyramid).pyramid, label = "2050", lw = 2, color =   :red)
+    plot!(pp1, 0:99, combine(groupby(df, :age), :y2050 => sum => :pyramid).pyramid, label = "2050", lw = 2, color =   red)
     push!(pyramid_, pp1)
 
     pp3 = plot(legend = :outertopright)
-    plot!(pp3, 2021:yend, 아기 - 시체, lw = 2, fa = .5, fill = 0, label = "net growth")
-    plot!(pp3, 2021:yend, 유입 - 유출, lw = 2, fa = .5, fill = 0, label = "net migration")
+    plot!(pp3, 2021:yend, 아기 - 시체, lw = 2, fa = .5, fillrange = 0, label = "net growth")
+    plot!(pp3, 2021:yend, 유입 - 유출, lw = 2, fa = .5, fillrange = 0, label = "net migration")
     
     plot(pp1, pp3, layout = (2,1), size = (600, 900))
     png("D:/figure/04 $k")
 end
 
-coordinate = DataFrame([
-"서울" 126.9783882  37.5666103
-"부산" 129.0750223  35.1798160
-"대구" 128.6017630  35.8713900
-"인천" 126.7051505  37.4559418
-"광주" 126.8513380  35.1600320
-"대전" 127.3849508  36.3504396
-"울산" 129.3112994  35.5394773
-"세종" 127.2894325  36.4803512
-"경기" 127.5508020  37.4363177
-"강원" 128.3115261  37.8603672
-"충북" 127.6551404  36.7853718
-"충남" 126.8453965  36.6173379
-"전북" 127.2368291  35.6910153
-"전남" 126.9571667  34.9007274
-"경북" 128.9625780  36.6308397
-"경남" 128.2417453  35.4414209
-"제주" 126.5758344  33.4273366
-], ["locaiton", "lon", "lat"])
+# coordinate = DataFrame([
+# "서울" 126.9783882  37.5666103
+# "부산" 129.0750223  35.1798160
+# "대구" 128.6017630  35.8713900
+# "인천" 126.7051505  37.4559418
+# "광주" 126.8513380  35.1600320
+# "대전" 127.3849508  36.3504396
+# "울산" 129.3112994  35.5394773
+# "세종" 127.2894325  36.4803512
+# "경기" 127.5508020  37.4363177
+# "강원" 128.3115261  37.8603672
+# "충북" 127.6551404  36.7853718
+# "충남" 126.8453965  36.6173379
+# "전북" 127.2368291  35.6910153
+# "전남" 126.9571667  34.9007274
+# "경북" 128.9625780  36.6308397
+# "경남" 128.2417453  35.4414209
+# "제주" 126.5758344  33.4273366
+# ], ["locaiton", "lon", "lat"])
 
-scatter(coordinate.lon, coordinate.lat, text = 1:17,
-    aspect_ratio = 1, size = (400, 600),
-    color = :white, ms = 20)
+# scatter(coordinate.lon, coordinate.lat, text = 1:17,
+#     aspect_ratio = 1, size = (400, 600),
+#     color = :white, ms = 20)
