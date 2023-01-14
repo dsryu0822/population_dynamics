@@ -38,6 +38,6 @@ for k = (17:-1:1)
     end
 end
 # pp1
-png(pp1, "D:/figure/05 y$t.png")
-println("D:/figure/05 y$t.png")
+png(pp1, "G:/figure/05 y$t.png")
+println("G:/figure/05 y$t.png")
 end

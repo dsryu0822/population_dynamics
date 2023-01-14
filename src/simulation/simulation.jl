@@ -82,8 +82,8 @@ function simulation(seed, POPULATION, MOBILITY)
     traj[!, string('y', t)] = population
     dead[!, string('y', t)] = death
     println(Dates.now())
-    CSV.write("D:/rslt $(lpad(seed, 4, '0')).csv", traj, encoding = "UTF-8", bom = true)
-    CSV.write("D:/dead $(lpad(seed, 4, '0')).csv", dead, encoding = "UTF-8", bom = true)
+    CSV.write("G:/rslt $(lpad(seed, 4, '0')).csv", traj, encoding = "UTF-8", bom = true)
+    CSV.write("G:/dead $(lpad(seed, 4, '0')).csv", dead, encoding = "UTF-8", bom = true)
     if t == tend break end
 
     location_[age_ .≥ 100] .= -18
@@ -125,7 +125,7 @@ function simulation(seed, POPULATION, MOBILITY)
     end
     flow = vcat([vec(reshape(flow, 17, 34, :)[:,:,k]') for k ∈ 1:17]...) # 원본데이터와 일치하도록 수정
     mgrn[!, string('y', t)] = flow
-    CSV.write("D:/mgrn $(lpad(seed, 4, '0')).csv", mgrn, encoding = "UTF-8", bom = true)
+    CSV.write("G:/mgrn $(lpad(seed, 4, '0')).csv", mgrn, encoding = "UTF-8", bom = true)
     age_[location_ .!= (-18)] .+= 1
     append!(gender_, rand(Bernoulli(female_ratio), sum(birth_location))) # 성비는 남:여 = 105:100
     append!(age_, zeros(Int8, sum(birth_location)))

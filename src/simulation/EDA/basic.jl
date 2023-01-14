@@ -13,14 +13,27 @@ function ts_sum(df)
     return sum.(eachcol(select(df, Not([:location, :gender, :age]))))
 end
 
+function marginal(df, col)
+    return combine(groupby(df, col), ["y$t" => sum => "y$t" for t = 2021:2070])[:, Not(col)]
+end
+
+is_capital = (loc -> loc ∈ ["서울특별시", "인천광역시", "경기도"])
+
+function ts_age(df)
+    age_l = ts_sum(df[df.age .< 15,:])
+    age_m = ts_sum(df[15 .≤ df.age .< 65,:])
+    age_h = ts_sum(df[65 .≤ df.age,:])
+    return [age_l age_m age_h]
+end
+
 name_location = ["Seoul","Busan","Daegu","Incheon","Gwangju","Daejeon","Ulsan","Sejong","Gyeonggi","Gangwon","Chungbuk","Chungnam","Jeonbuk","Jeonnam","Gyeongbuk","Gyeongnam","Jeju"]
 
 n_seed = 10
 yend = 2070
 
-rslt_ = [CSV.read("D:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
-dead_ = [CSV.read("D:/recent/dead $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
-mgrn_ = [CSV.read("D:/recent/mgrn $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
+rslt_ = [CSV.read("G:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
+dead_ = [CSV.read("G:/recent/dead $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
+mgrn_ = [CSV.read("G:/recent/mgrn $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
 for k in 1:n_seed
     select!(rslt_[k], 1:(yend - 2017))
     select!(dead_[k], 1:(yend - 2017))
