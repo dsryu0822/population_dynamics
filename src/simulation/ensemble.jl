@@ -1,5 +1,6 @@
 using Dates
 println(Dates.now())
+println(Threads.nthreads(), " workers are found")
 
 using CUDA
 using CSV, DataFrames
@@ -7,7 +8,7 @@ using Random, Distributions
 
 const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
 const female_ratio = 100 / (105 + 100) # 성비는 남:여 = 105:100
-const ε = 0.2 # 이거 근데 어차피 폐기될거고 각 텐서별로 분산 구해서 쓰게될듯 230107 기준으로 0.2 꽤 나쁘지 않았음
+const ε = 0 # 이거 근데 어차피 폐기될거고 각 텐서별로 분산 구해서 쓰게될듯 230107 기준으로 0.2 꽤 나쁘지 않았음
 
 include("simulation.jl")
 
@@ -18,19 +19,19 @@ for year ∈ years
     POPULATION[:, year] = trunc.(Int64, POPULATION[:, year])
     POPULATION[!, year] = convert.(Int64, POPULATION[:, year])
 end
-POPULATION = POPULATION[:, [1,2,3,end]]
+# POPULATION = POPULATION[:, [1,2,3,end]]
 const tensor_population = reshape(POPULATION.y2021, 100, 17, 2)
 
 MORTALITY = CSV.read("data/KOSIS/mortality.csv", DataFrame)
 rename!(MORTALITY, ["location", "gender", "age", years...])
-MORTALITY = MORTALITY[:, [1,2,3,end]]
+# MORTALITY = MORTALITY[:, [1,2,3,end]]
 
 const tensor_mortality = reshape(MORTALITY.y2021, 100, 17, 2) ./ tensor_population
 # tensor_mortality[a+1,-loc,gen+1]
 
 MOBILITY = CSV.read("data/KOSIS/mobility.csv", DataFrame)
 rename!(MOBILITY, ["from", "to", "gender", "age", years...])
-MOBILITY = MOBILITY[:, [1,2,3,4,end]]
+# MOBILITY = MOBILITY[:, [1,2,3,4,end]]
 
 pop5 = vec(sum(reshape(POPULATION.y2021, 5, :), dims = 1))
 pop5 = reshape(pop5, 20, :)

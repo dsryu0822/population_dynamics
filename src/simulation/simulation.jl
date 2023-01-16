@@ -30,7 +30,7 @@ end
 function simulation(seed, POPULATION, MOBILITY)
     location_, gender_, age_ = initializer(POPULATION, :y2021)
     traj = deepcopy(POPULATION)
-    dead = deepcopy(POPULATION)
+    dead = deepcopy(MORTALITY)
     mgrn = deepcopy(MOBILITY)
     Random.seed!(seed)
 

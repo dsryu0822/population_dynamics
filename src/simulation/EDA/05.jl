@@ -25,7 +25,7 @@ trans = Proj.Transformation(
 shptable = Shapefile.Table("src/simulation/EDA/map/ctp_rvn.shp")
 plgn_ = shp_cache(shptable);
 
-for t in [2021, 2031, 2041, 2050]
+for t in [2012, 2031, 2041, 2050]
 pop = combine(groupby(rslt_[1], :location), "y$t" => sum)[:, 2] |> normalize01
 colormap = get(ColorSchemes.algae, pop)
 pp1 = plot(legend = :bottomright, title = "year: $t", size = (500, 600),

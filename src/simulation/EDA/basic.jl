@@ -14,7 +14,7 @@ function ts_sum(df)
 end
 
 function marginal(df, col)
-    return combine(groupby(df, col), ["y$t" => sum => "y$t" for t = 2021:2070])[:, Not(col)]
+    return combine(groupby(df, col), ["y$t" => sum => "y$t" for t = 2012:2070])[:, Not(col)]
 end
 
 is_capital = (loc -> loc ∈ ["서울특별시", "인천광역시", "경기도"])
@@ -35,9 +35,9 @@ rslt_ = [CSV.read("G:/recent/rslt $(lpad(seed, 4, '0')).csv", DataFrame) for see
 dead_ = [CSV.read("G:/recent/dead $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
 mgrn_ = [CSV.read("G:/recent/mgrn $(lpad(seed, 4, '0')).csv", DataFrame) for seed = 1:n_seed]
 for k in 1:n_seed
-    select!(rslt_[k], 1:(yend - 2017))
-    select!(dead_[k], 1:(yend - 2017))
-    select!(mgrn_[k], 1:(yend - 2017 + 1))
+    select!(rslt_[k], 1:(yend - 2017 + 9))
+    select!(dead_[k], 1:(yend - 2017 + 9))
+    select!(mgrn_[k], 1:(yend - 2017 + 9 + 1))
     rslt_[k].age = parse.(Int, replace.(rslt_[k].age, '세' => ""))
     dead_[k].age = parse.(Int, replace.(dead_[k].age, '세' => ""))
     mgrn_[k].age = parse.(Int, first.(mgrn_[k].age, 2))
@@ -54,7 +54,7 @@ mgrn = mgrn_[1]
 # rename!(MOBILITY, ["from", "to", "gender", "age", years...])
 # MOBILITY = MOBILITY[:, [1,2,3,4,end]]
 
-# migration_matrix = reshape(sum(reshape(MOBILITY.y2021, 17,2,17,17), dims = 1:2), 17, 17)
+# migration_matrix = reshape(sum(reshape(MOBILITY.y2012, 17,2,17,17), dims = 1:2), 17, 17)
 # for d ∈ 1:17 migration_matrix[d,d] = 0 end
 # # 세로 전출, 가로 전출 ex) 서울 → 부산: 13078 = M(2,1)
 

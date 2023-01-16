@@ -21,7 +21,7 @@ for k ∈ 1:17
     유출수도지방2 = Int64[]
     유입수도지방17 = Int64[]
     유출수도지방17 = Int64[]
-    for t ∈ 2021:yend
+    for t ∈ 2012:yend
         vctr_mgrn = mgrn[:, "y$t"]
         mtrx_mgrn = reshape(sum(reshape(vctr_mgrn, 17,2,17,17), dims = 1:2), 17, 17)
         mtrx_mgrn .*= (1 .- I(17))
@@ -45,30 +45,30 @@ for k ∈ 1:17
     end
 
     pp1 = plot(title = "$k $(name_location[k])", xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,25,50,75,99])
-    plot!(pp1, 0:99, df.y2021[1:100] + df.y2021[101:200], label = "2021", lw = 2, color = :black)
+    plot!(pp1, 0:99, df.y2012[1:100] + df.y2012[101:200], label = "2012", lw = 2, color = :black)
     plot!(pp1, 0:99, df.y2046[1:100] + df.y2046[101:200], label = "2046", lw = 2, color = :navy)
     # plot!(pp1, 0:99, df.y2070[1:100] + df.y2070[101:200], label = "2070", lw = 2, color = :blue)
-    plot!(pp1, 25:99, df.y2021[1:75] + df.y2021[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
+    plot!(pp1, 25:99, df.y2012[1:75] + df.y2012[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
     # plot!(pp1, 25:99, df.y2046[1:75] + df.y2046[101:175], label = :none, lw = 2, color = :navy, ls = :dash, alpha = 0.5)
 
     pp2 = plot(title = "$k $(name_location[k])", xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,25,50,75,99])
-    plot!(pp2, 0:99, df.y2021[1:100] + df.y2021[101:200], label = "2021", lw = 2, color = :black)
+    plot!(pp2, 0:99, df.y2012[1:100] + df.y2012[101:200], label = "2012", lw = 2, color = :black)
     plot!(pp2, 0:99, df.y2046[1:100] + df.y2046[101:200], label = "2046", lw = 2, color = :navy)
     plot!(pp2, 0:99, df.y2070[1:100] + df.y2070[101:200], label = "2070", lw = 2, color = :blue)
-    # plot!(pp2, 25:99, df.y2021[1:75] + df.y2021[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
+    # plot!(pp2, 25:99, df.y2012[1:75] + df.y2012[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
     # plot!(pp2, 25:99, df.y2046[1:75] + df.y2046[101:175], label = :none, lw = 2, color = :navy, ls = :dash, alpha = 0.5)
     
-    pp3 = plot(ylabel = "Number", xlabel = "Year", xticks = [2021, (2030:10:yend)...], xlims = (2021, yend), legend = :none)
-    plot!(pp3, 2021:yend, 유입시도 - 유출시도, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp3, 2021:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    pp3 = plot(ylabel = "Number", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend), legend = :none)
+    plot!(pp3, 2012:yend, 유입시도 - 유출시도, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
+    plot!(pp3, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
     
-    pp4 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2021, (2030:10:yend)...], xlims = (2021, yend))
-    plot!(pp4, 2021:yend, 유입수도지방17 - 유출수도지방17, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp4, 2021:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    pp4 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend))
+    plot!(pp4, 2012:yend, 유입수도지방17 - 유출수도지방17, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
+    plot!(pp4, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
     
-    pp04_5 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2021, (2030:10:yend)...], xlims = (2021, yend))
-    plot!(pp04_5, 2021:yend, 유입수도지방2 - 유출수도지방2, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp04_5, 2021:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    pp04_5 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend))
+    plot!(pp04_5, 2012:yend, 유입수도지방2 - 유출수도지방2, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
+    plot!(pp04_5, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
     push!(pp04_5_, pp04_5)
 
     plot(pp1, pp2, pp3, pp4, layout = (2,2), size = 60 .* (16, 9), leftmargin = 6Plots.mm, rightmargin = 6Plots.mm, dpi = 200)
