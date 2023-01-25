@@ -1,7 +1,3 @@
-include("basic.jl")
-
-# using Graphs, GraphRecipes
-
 coordinate = DataFrame([
 "서울" 126.9783882  37.5666103  5   5
 "부산" 129.0750223  35.1798160  9   3

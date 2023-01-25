@@ -1,77 +1,88 @@
-include("basic.jl")
-
 diridx = [1,4,9,2,3,5,6,7,8,(10:17)...]
 invidx = [1,4,5,2,6,7,8,9,3,(10:17)...]
 
 rslt_gdf = groupby(rslt, :location)
 dead_gdf = groupby(dead, :location)
 
-pp04_5_ = []
+pp04_04_ = []
+pp04_08_ = []
 for k ∈ 1:17
-    df = rslt_gdf[k]
-
-    아기 = filter(:age => age -> age == 0, df) |> ts_sum    
-    ddf = dead_gdf[k]
-    시체 = ddf |> ts_sum
+    rslt_k = rslt_gdf[k]
+    dead_k = dead_gdf[k]
+    age_c = cumsum(ts_age(rslt_k), dims = 2)
     
-    mtrx_mgrn_ = Dict()
-    유입시도 = Int64[]
-    유출시도 = Int64[]
-    유입수도지방2 = Int64[]
-    유출수도지방2 = Int64[]
-    유입수도지방17 = Int64[]
-    유출수도지방17 = Int64[]
-    for t ∈ 2012:yend
-        vctr_mgrn = mgrn[:, "y$t"]
-        mtrx_mgrn = reshape(sum(reshape(vctr_mgrn, 17,2,17,17), dims = 1:2), 17, 17)
-        mtrx_mgrn .*= (1 .- I(17))
-        push!(유입시도, sum(mtrx_mgrn[k, :]))
-        push!(유출시도, sum(mtrx_mgrn[:, k]))
-        
-        temp = mtrx_mgrn[diridx, diridx]
-        temp[1:3,1:3] .= 0
-        temp[4:17,4:17] .= 0
-        push!(유입수도지방2, sum(temp[1:3, :]))
-        push!(유출수도지방2, sum(temp[:, 1:3]))
-
-        mtrx_mgrn = temp[invidx, invidx]
-        push!(mtrx_mgrn_, t => mtrx_mgrn)
-        push!(유입수도지방17, sum(mtrx_mgrn[k, :]))
-        push!(유출수도지방17, sum(mtrx_mgrn[:, k]))
-       
-        # vctr_mgrn_age = vec(sum(reshape(vctr_mgrn, 17,2,17,17), dims = 2))
-        # mtrx_mgrn_child = reshape(sum(reshape(vctr_mgrn_age, 17, 17, 17)[1:10,:,:], dims = 1), 17, 17)
-        # mtrx_mgrn_elder = reshape(sum(reshape(vctr_mgrn_age, 17, 17, 17)[11:end,:,:], dims = 1), 17, 17)
-    end
-
-    pp1 = plot(title = "$k $(name_location[k])", xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,25,50,75,99])
-    plot!(pp1, 0:99, df.y2012[1:100] + df.y2012[101:200], label = "2012", lw = 2, color = :black)
-    plot!(pp1, 0:99, df.y2046[1:100] + df.y2046[101:200], label = "2046", lw = 2, color = :navy)
-    # plot!(pp1, 0:99, df.y2070[1:100] + df.y2070[101:200], label = "2070", lw = 2, color = :blue)
-    plot!(pp1, 25:99, df.y2012[1:75] + df.y2012[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
-    # plot!(pp1, 25:99, df.y2046[1:75] + df.y2046[101:175], label = :none, lw = 2, color = :navy, ls = :dash, alpha = 0.5)
-
-    pp2 = plot(title = "$k $(name_location[k])", xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,25,50,75,99])
-    plot!(pp2, 0:99, df.y2012[1:100] + df.y2012[101:200], label = "2012", lw = 2, color = :black)
-    plot!(pp2, 0:99, df.y2046[1:100] + df.y2046[101:200], label = "2046", lw = 2, color = :navy)
-    plot!(pp2, 0:99, df.y2070[1:100] + df.y2070[101:200], label = "2070", lw = 2, color = :blue)
-    # plot!(pp2, 25:99, df.y2012[1:75] + df.y2012[101:175], label = :none, lw = 2, color = :black, ls = :dash, alpha = 0.5)
-    # plot!(pp2, 25:99, df.y2046[1:75] + df.y2046[101:175], label = :none, lw = 2, color = :navy, ls = :dash, alpha = 0.5)
+    birth = filter(:age => age -> age == 0, rslt_k) |> ts_sum
+    death = (dead_k |> ts_sum)
     
-    pp3 = plot(ylabel = "Number", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend), legend = :none)
-    plot!(pp3, 2012:yend, 유입시도 - 유출시도, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp3, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    mgrn_k_out = filter(:to => col -> col != 이름_지역[k], filter(:from => col -> col == 이름_지역[k], mgrn))
+    rename!(mgrn_k_out, :from => :location)
+    select!(mgrn_k_out, Not(:to))
+    mgrn_k_in = filter(:to => col -> col == 이름_지역[k], filter(:from => col -> col != 이름_지역[k], mgrn))
+    rename!(mgrn_k_in, :to => :location)
+    select!(mgrn_k_in, Not(:from))
+    age_migration = ts_age(mgrn_k_in) - ts_age(mgrn_k_out)
     
-    pp4 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend))
-    plot!(pp4, 2012:yend, 유입수도지방17 - 유출수도지방17, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp4, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    netmigrat = sum(age_migration, dims = 2)
+    netgrowth = birth - death
     
-    pp04_5 = plot(ylabel = "Number(bipartite)", xlabel = "Year", xticks = [2012, (2030:10:yend)...], xlims = (2012, yend))
-    plot!(pp04_5, 2012:yend, 유입수도지방2 - 유출수도지방2, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp04_5, 2012:yend, 아기  -  시체, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
-    push!(pp04_5_, pp04_5)
+    pp04_01 = plot(xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,14,65,99])
+    plot!(pp04_01, 0:99, df_age.y2020[1:100], label = "2020", lw = 2, color = :black)
+    plot!(pp04_01, 0:99, df_age.y2045[1:100], label = "2045", lw = 2, color = :navy)
+    plot!(pp04_01, 0:99, df_age.y2070[1:100], label = "2070", lw = 2, color = :blue)
+    png(pp04_01, "G:/figure/subfigure/04 $k $(name_location[k]) pp04_01.png")
+    
+    pp04_02 = plot(legend = :topright,
+        xlims = (2012, yend), ylims = (0,Inf), xticks = [2012, (2020:10:yend)...],
+        ylabel = "Population")
+    plot!(pp04_02, 2012:yend, age_c[:,3], color =    red, fa = .5, fillrange = age_c[:,2], label = "65-")
+    plot!(pp04_02, 2012:yend, age_c[:,2], color = orange, fa = .5, fillrange = age_c[:,1], label = "15-64")
+    plot!(pp04_02, 2012:yend, age_c[:,1], color = yellow, fa = .5, fillrange = 0         , label = "-14")
+    png(pp04_02, "G:/figure/subfigure/04 $k $(name_location[k]) pp04_02.png")
+    
+    pp04_04 = plot(
+        xlims = (2012, yend), xticks = [2012, (2020:10:yend)...],
+        xlabel = "Year", ylabel = "Age-specific Migration")
+    plot!(pp04_04, 2012:yend, age_migration[:,3], color =    red, msw = 0, shape = :circ, lw = 2, fa = 0.1, fillrange = 0, label = "65-")
+    plot!(pp04_04, 2012:yend, age_migration[:,2], color = orange, msw = 0, shape = :rect, lw = 2, fa = 0.1, fillrange = 0, label = "15-64")
+    plot!(pp04_04, 2012:yend, age_migration[:,1], color = yellow, msw = 0, shape = :diamond, lw = 2, fa = 0.1, fillrange = 0, label = "-14")
+    png(pp04_04, "G:/figure/subfigure/04 $k $(name_location[k]) pp04_04.png")
+    push!(pp04_04_, pp04_04)
+    
+    pp04_06 = plot(legend = :bottomleft,
+        xlims = (2012, yend), xticks = [2012, (2020:10:yend)...],
+        ylabel = "Number", bgcolor_legend = colorant"#DDDDDD")
+    plot!(pp04_06, 2012:yend, birth, fa = .5, fillrange = 0, color = :green, label = "Birth")
+    plot!(pp04_06, 2012:yend, -death, fa = .5, fillrange = 0, color = :black, label = "Death")
+    plot!(pp04_06, 2012:yend, birth - death, color = :white, label = "Net growth", lw = 2)
+    png(pp04_06, "G:/figure/subfigure/01 0 korea pp01_06.png")
 
-    plot(pp1, pp2, pp3, pp4, layout = (2,2), size = 60 .* (16, 9), leftmargin = 6Plots.mm, rightmargin = 6Plots.mm, dpi = 200)
+    pp04_08 = plot(ylabel = "Number", xlabel = "Year", xticks = [2012, (2020:10:yend)...], xlims = (2012, yend))
+    plot!(pp04_08, 2012:yend, netmigrat, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
+    plot!(pp04_08, 2012:yend, netgrowth, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    push!(pp04_08_, pp04_08)
+    
+    plot(pp04_02, pp04_06, pp04_04, pp04_08, 
+        plot_title = "$k $(name_location[k])", layout = (2,2), size = (1200, 800),
+        leftmargin = 5Plots.mm, dpi = 200)
     png("G:/figure/04 $k $(name_location[k]).png")
 end
-pp04_5_[12]
+
+plot(
+    pp04_02_[1],
+    pp04_04_[1],
+    pp04_06_[1],
+    pp04_08_[1]
+)
+
+plot(
+    plot(pp04_08_[1],  title = "Seoul"     , legend = :none),
+    plot(pp04_08_[2],  title = "Busan"     , legend = :none),
+    plot(pp04_08_[4],  title = "Incheon"   , legend = :none),
+    plot(pp04_08_[16], title = "Gyoungnam" , legend = :none),
+    plot(pp04_08_[9],  title = "Gyounggi"  , legend = :none),
+    plot(pp04_08_[10], title = "Gangwon"   , legend = :none),
+    plot(pp04_08_[8],  title = "Sejong"    , legend = :none),
+    plot(pp04_08_[17], title = "Jeju")     ,
+    layout = (4,2), size = (1200, 1200), dpi = 200
+)
+png("G:/figure/04.png")

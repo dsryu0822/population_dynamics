@@ -1,9 +1,7 @@
-include("basic.jl")
-
 rslt_gdf = groupby(rslt, :location)
 dead_gdf = groupby(dead, :location)
 t_super_aging_ = Int64[]
-y2012_ = Int64[]
+y2021_ = Int64[]
 y2070_ = Int64[]
 for k ∈ 1:17
     df = rslt_gdf[k]
@@ -13,9 +11,9 @@ for k ∈ 1:17
     age_c = cumsum([age_l age_m age_h], dims = 2)
     age_r = 100 * cumsum([(age_l ./ age_m) (age_h ./ age_m)], dims = 2)
     age_cr = 100 * (age_c ./ age_c[:, 3])
-    t_super_aging = 2020 + findfirst((age_h ./ age_c[:,3]) .> .21)
+    t_super_aging = 2011 + findfirst((age_h ./ age_c[:,3]) .> .21)
     push!(t_super_aging_, t_super_aging)
-    push!(y2012_, sum(df.y2012))
+    push!(y2021_, sum(df.y2021))
     push!(y2070_, sum(df.y2070))
 
     아기 = filter(:age => age -> age == 0, df) |> ts_sum    
@@ -39,51 +37,72 @@ for k ∈ 1:17
     end
     
     pp2 = plot(legend = :topright,
-    xlims = (2012, yend), ylims = (0,Inf), xticks = [2012, (2030:10:yend)...],
+    xlims = (2012, yend), ylims = (0,Inf), xticks = [2012, (2020:10:yend)...],
     ylabel = "Population")
     plot!(pp2, 2012:yend, age_c[:,3], color =    red, fa = .5, fillrange = age_c[:,2], label = "65-")
     plot!(pp2, 2012:yend, age_c[:,2], color = orange, fa = .5, fillrange = age_c[:,1], label = "15-64")
     plot!(pp2, 2012:yend, age_c[:,1], color = yellow, fa = .5, fillrange = 0         , label = "-14")
-    # annotate!(pp2, [2022], [52], [(L"\times 10^6", 8)])
-    png(pp2, "G:/figure/subfigure/01 0 korea pp2.png")
+    png(pp2, "G:/figure/subfigure/03 $k $(name_location[k]) pp2.png")
 
     pp4 = plot(legend = :topleft,
-    xlims = (2012, yend), ylims = (0,150), xticks = [2012, (2030:10:yend)...],
+    xlims = (2012, yend), ylims = (0,150), xticks = [2012, (2020:10:yend)...],
     ylabel = "Ratio(%)")
-    plot!(pp4, 2012:yend, age_r[:,2], color =    red, fa = .5, fillrange = age_r[:,1], label = "Elder Dependency Ratio")
-    plot!(pp4, 2012:yend, age_r[:,1], color = yellow, fa = .5, fillrange = 0         , label = "Child Dependency Ratio")
-    png(pp4, "G:/figure/subfigure/01 0 korea pp4.png")
+    plot!(pp4, 2012:yend, age_r[:,2], color =    red, fa = .5, fillrange = age_r[:,1], label = "Old-age Dependency Ratio")
+    plot!(pp4, 2012:yend, age_r[:,1], color = yellow, fa = .5, fillrange = 0         , label = "Youth Dependency Ratio")
+    png(pp4, "G:/figure/subfigure/03 $k $(name_location[k]) pp4.png")
 
     pp5 = plot(legend = :none,
-    xlims = (2012, yend), ylims = (0,100), xticks = [2012, (2030:10:yend)...],
+    xlims = (2012, yend), ylims = (0,100), xticks = [2012, (2020:10:yend)...],
     xlabel = "Year", ylabel = "Ratio(%)")
     plot!(pp5, 2012:yend, age_cr[:,3], color =    red, fa = .5, fillrange = age_cr[:,2], label = "65-")
     plot!(pp5, 2012:yend, age_cr[:,2], color = orange, fa = .5, fillrange = age_cr[:,1], label = "15-64")
     plot!(pp5, 2012:yend, age_cr[:,1], color = yellow, fa = .5, fillrange = 0          , label = "-14")
     vline!([t_super_aging], style = :dash, color = :white, label = "super aging", lw = 2)
-    png(pp5, "G:/figure/subfigure/01 0 korea pp5.png")
+    png(pp5, "G:/figure/subfigure/03 $k $(name_location[k]) pp5.png")
 
     pp6 = plot(legend = :bottomleft,
-    xlims = (2012, yend), xticks = [2012, (2030:10:yend)...],
+    xlims = (2012, yend), xticks = [2012, (2020:10:yend)...],
     xlabel = "Year", ylabel = "Number")
     plot!(pp6, 2012:yend, filter(:age => age -> age == 0, df) |> ts_sum, fa = .5, fillrange = 0, color = :green, label = "Birth")
     plot!(pp6, 2012:yend, -(ddf |> ts_sum),                               fa = .5, fillrange = 0, color = :black, label = "Death")
-    png(pp6, "G:/figure/subfigure/01 0 korea pp6.png")
+    png(pp6, "G:/figure/subfigure/03 $k $(name_location[k]) pp6.png")
 
     plot(pp2, pp4, pp5, pp6, layout = (2,2), size = 60 .* (16, 9), plot_title = "$k $(name_location[k])",
     left_margin = 3Plots.mm, right_margin = 3Plots.mm, dpi = 200)
     png("G:/figure/02 $k $(name_location[k]).png")
 end
 
-poploss = trunc.(1 .- (y2070_ ./ y2012_), digits = 2)
+poploss = trunc.(1 .- (y2070_ ./ y2021_), digits = 2)
 DataFrame(;
 name_location,
 t_super_aging_,
-y2012_,
+y2021_,
 y2070_,
 poploss
 )
-scatter(t_super_aging_, y2012_, text = name_location,
+scatter(t_super_aging_, y2021_, text = name_location,
     legend = :none, 
     ms = 0, xlims = (2018, 2042), xticks = t_super_aging_, yaxis = :log10,)
 png("G:/figure/temp1.png")
+
+
+"""
+ 1 & Seoul*    & 2027 &  9,452,735 &  4,353,947 & 0.53 \% \\
+ 2 & Busan     & 2023 &  3,342,975 &  1,362,268 & 0.59 \% \\
+ 3 & Daegu     & 2025 &  2,387,193 &    907,014 & 0.62 \% \\
+ 4 & Incheon*  & 2028 &  2,921,486 &  1,784,201 & 0.38 \% \\
+ 5 & Gwangju   & 2029 &  1,438,662 &    663,182 & 0.53 \% \\
+ 6 & Daejeon   & 2028 &  1,449,428 &    718,441 & 0.50 \% \\
+ 7 & Ulsan     & 2027 &  1,123,933 &    423,125 & 0.62 \% \\
+ 8 & Sejong    & 2040 &    362,853 &    258,822 & 0.28 \% \\
+ 9 & Gyeonggi* & 2030 & 13,397,444 &  8,755,098 & 0.34 \% \\
+10 & Gangwon   & 2021 &  1,530,154 &    943,571 & 0.38 \% \\
+11 & Chungbuk  & 2024 &  1,590,962 &    952,672 & 0.40 \% \\
+12 & Chungnam  & 2024 &  2,108,672 &  1,312,258 & 0.37 \% \\
+13 & Jeonbuk   & 2021 &  1,785,904 &    857,540 & 0.51 \% \\
+14 & Jeonnam   & 2017 &  1,832,551 &    910,001 & 0.50 \% \\
+15 & Gyeongbuk & 2020 &  2,619,286 &  1,284,855 & 0.50 \% \\
+16 & Gyeongnam & 2024 &  3,310,829 &  1,485,975 & 0.55 \% \\
+17 & Jeju      & 2028 &    670,767 &    411,923 & 0.38 \% \\
+"""
+

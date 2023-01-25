@@ -2,6 +2,8 @@ using CSV, DataFrames
 using LinearAlgebra
 
 using Plots, LaTeXStrings
+mm = Plots.mm
+
 
 default(fontfamily = "Computer Modern")
 # plot(rand(10), title = "abcdefu")
@@ -43,9 +45,18 @@ for k in 1:n_seed
     mgrn_[k].age = parse.(Int, first.(mgrn_[k].age, 2))
 end
 
+try
+    mkdir("G:/figure")
+    mkdir("G:/figure/subfigure")
+    mkdir("G:/figure/snapshot")
+catch
+     println("G:/figure already exists")
+end
+
 rslt = rslt_[1]
 dead = dead_[1]
 mgrn = mgrn_[1]
+이름_지역 = unique(rslt.location)
 
 # # 시작 시뮬레이션 타당성 검토
 # k = 1
