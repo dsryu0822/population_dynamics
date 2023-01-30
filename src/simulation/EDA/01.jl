@@ -14,6 +14,9 @@ begin
 
     df_age = marginal(rslt, :age)
 
+    오십미만 = filter(:age => age -> (age < 50), rslt) |> ts_sum
+    오십이상 = filter(:age => age -> (age ≥ 50), rslt) |> ts_sum
+
     pp01_02 = plot(legend = :topright,
         xlims = (2012, yend), ylims = (0,1.05maximum(pop)), xticks = [2012, (2020:10:yend)...],
         ylabel = "Population")
@@ -81,4 +84,17 @@ begin
     plot!(pp01_11, 2012:yend, 비율[:,end - 2], color = :black, fa = 0.6, fillrange = 비율[:,end - 3], label = "Incheon")
     plot!(pp01_11, 2012:yend, 비율[:,1], color = :black, fa = 0.8, fillrange = 0, label = "Seoul")
     png("G:/figure/01 0 korea pp01_11.png")
+
+    pp01_13 = plot(legend = :topright,
+    xlims = (2012, yend), ylims = (0,1.05maximum(pop)), xticks = [2012, (2020:10:yend)...],
+    ylabel = "Population")
+    plot!(pp01_13, 2012:yend, 오십미만 + 오십이상, color = :navy, fa = .5, fillrange = 오십미만, label = "≥ 50")
+    plot!(pp01_13, 2012:yend, 오십미만, color = :blue, fa = .5, fillrange = 0, label = "< 50")
+    pp01_14 = plot(legend = :topright,
+        xlims = (2012, yend), ylims = (0,1), xticks = [2012, (2020:10:yend)...],
+        ylabel = "Ratio")
+    plot!(pp01_14, 2012:yend, (오십미만 + 오십이상) ./ (오십미만 + 오십이상), color = :navy, fa = .5, fillrange = 오십미만 ./ (오십미만 + 오십이상), label = "≥ 50")
+    plot!(pp01_14, 2012:yend, 오십미만 ./ (오십미만 + 오십이상), color = :blue, fa = .5, fillrange = 0, label = "< 50")
+    plot(pp01_13, pp01_14, layout = (2,1), dpi = 200)
+    png("G:/figure/01 0 korea 50yo.png")
 end

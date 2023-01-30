@@ -5,54 +5,43 @@ println(Threads.nthreads(), " workers are found")
 # using CUDA
 using CSV, DataFrames
 using Random, Distributions
+using Base.Threads
 
-const years = ["y2012","y2013","y2014","y2015","y2016","y2017","y2018","y2019","y2020","y2021"]
+const years = lpad.(2000:2021, 5, 'y')
 const female_ratio = 100 / (105 + 100) # 성비는 남:여 = 105:100
 
 const ε = 0 # 이거 근데 어차피 폐기될거고 각 텐서별로 분산 구해서 쓰게될듯 230107 기준으로 0.2 꽤 나쁘지 않았음
-const tbgn = 2021
-const tend = 2100
 
 include("simulation.jl")
 
 POPULATION = CSV.read("data/KOSIS/population.csv", DataFrame)
+POPULATION = ifelse.(ismissing.(POPULATION), 1, POPULATION)
 rename!(POPULATION, ["location", "gender", "age", years...])
-filter!(:age => x -> (x != "100세 이상"), POPULATION)
 for year ∈ years
     POPULATION[:, year] = trunc.(Int64, POPULATION[:, year])
     POPULATION[!, year] = convert.(Int64, POPULATION[:, year])
 end
-# POPULATION = POPULATION[:, [1,2,3,end]]
-const tensor_population = reshape(POPULATION[:,"y$tbgn"], 100, 17, 2)
 
 MORTALITY = CSV.read("data/KOSIS/mortality.csv", DataFrame)
+MORTALITY = ifelse.(ismissing.(MORTALITY), 1, MORTALITY)
 rename!(MORTALITY, ["location", "gender", "age", years...])
-# MORTALITY = MORTALITY[:, [1,2,3,end]]
-
-const tensor_mortality = reshape(MORTALITY[:,"y$tbgn"], 100, 17, 2) ./ tensor_population
-# tensor_mortality[a+1,-loc,gen+1]
 
 MOBILITY = CSV.read("data/KOSIS/mobility.csv", DataFrame)
+MOBILITY = ifelse.(ismissing.(MOBILITY), 0, MOBILITY)
 rename!(MOBILITY, ["from", "to", "gender", "age", years...])
-# MOBILITY = MOBILITY[:, [1,2,3,4,end]]
-
-pop5 = vec(sum(reshape(POPULATION[:,"y$tbgn"], 5, :), dims = 1))
-pop5 = reshape(pop5, 20, :)
-pop5[17,:] = sum(pop5[17:end,:], dims = 1)  # 가장 아래에 있는 4행은 80세 이상
-pop5 = pop5[1:17, :] # mobility랑 칸수를 맞추기 위해 제거, 34열 = 2성별 * 17시도
-pop5 = reshape(pop5, 34, :) # 성별이 먼저 나오기 때문에 같이 복제되어야함
-pop5 = repeat(pop5, 17) # 17개 전입지별로 복제
-const tensor_mobility = reshape(MOBILITY[:,"y$tbgn"] ./ vec(pop5), 17, 2, 17, 17)
-# tensor_mobility[a5, gen+1, to, from]
 
 FERTILITY = CSV.read("data/KOSIS/fertility.csv", DataFrame)
-argyear = findfirst(names(FERTILITY) .== string(tbgn))
-FERTILITY = FERTILITY[Not(1), [1,(argyear:(argyear + 6))...]]
-rename!(FERTILITY, ["location", ("a" .* string.(15:5:45))...])
-const tensor_fertility = parse.(Float64, Matrix(FERTILITY[:, Not(1)])) ./ 1000
+FERTILITY = ifelse.(ismissing.(FERTILITY), "0", FERTILITY)
+# argyear = findfirst(names(FERTILITY) .== string(tbgn))
+# FERTILITY = FERTILITY[Not(1), [1,(argyear:(argyear + 6))...]]
+# rename!(FERTILITY, ["location", ("a" .* string.(15:5:45))...])
 
-println("Simulation start at $(Dates.now()): ")
-# for seed ∈ 1:10
-for seed ∈ 1:1
-    simulation(seed, POPULATION, MOBILITY)
+
+# println("Simulation start at $(Dates.now()): ")
+# @threads for tbgn ∈ 2000:2020
+#     simulation(tbgn, tbgn, 2021)
+# end
+
+@threads for seed ∈ 1:10
+    simulation(seed, 2021, 2100)
 end

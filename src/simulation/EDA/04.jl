@@ -68,13 +68,6 @@ for k ∈ 1:17
 end
 
 plot(
-    pp04_02_[1],
-    pp04_04_[1],
-    pp04_06_[1],
-    pp04_08_[1]
-)
-
-plot(
     plot(pp04_08_[1],  title = "Seoul"     , legend = :none),
     plot(pp04_08_[2],  title = "Busan"     , legend = :none),
     plot(pp04_08_[4],  title = "Incheon"   , legend = :none),

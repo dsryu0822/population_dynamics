@@ -24,28 +24,43 @@ function initializer(POPULATION, y)
 end
 
 function validizer(p)
-    return min(1, max(0, p))
+    if isnan(p) return rand() end
+    return min(1.0, max(0.0, p))
 end
 
-function simulation(seed, POPULATION, MOBILITY)
+function simulation(seed, tbgn, tend)
     location_, gender_, age_ = initializer(POPULATION, "y$tbgn")
     traj = deepcopy(POPULATION)
     dead = deepcopy(MORTALITY)
     mgrn = deepcopy(MOBILITY)
+
+    pop5 = sum(reshape(POPULATION[:,"y$tbgn"], 5, :), dims = 1)
+    pop5 = reshape(pop5, 20, :)
+    pop5[17,:] = sum(pop5[17:end,:], dims = 1)  # 가장 아래에 있는 4행은 80세 이상
+    pop5 = pop5[1:17, :] # mobility랑 칸수를 맞추기 위해 제거, 34열 = 2성별 * 17시도
+    pop5 = reshape(pop5, 34, :) # 성별이 먼저 나오기 때문에 같이 복제되어야함
+    pop5 = vec(repeat(pop5, 17)) # 17개 전출지별로 복제
+    argyear = findfirst(names(FERTILITY) .== string(tbgn))
+
+    tensor_population = reshape(POPULATION[:,"y$tbgn"], 100, 2, 17) # 연령(100) * 성별(2) * 시도(17)
+    tensor_mortality = reshape(MORTALITY[:,"y$tbgn"], 100, 2, 17) ./ tensor_population
+    tensor_mobility = reshape(MOBILITY[:,"y$tbgn"] ./ pop5, 17, 2, 17, 17) # 연령(17) * 성별(2) * 전입(17) * 전출(17)
+    tensor_fertility = parse.(Float64, Matrix(FERTILITY[Not(1), argyear:(argyear + 6)])) ./ 1000
+
     Random.seed!(seed)
 
 for t in tbgn:tend
     # 죽음 시작
     print('|')
-    bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:17)])
     bit_age_ = Dict([a => (age_ .== a) for a ∈ 0:100])
     bit_gender_ = Dict([gen => (gender_ .== gen) for gen ∈ [false, true]])
+    bit_location_ = Dict([loc => (location_ .== loc) for loc ∈ -(1:17)])
     population = Int64[]
     death = Int64[]
     for loc ∈ -(1:17), gen ∈ [false, true]
         bit_double = bit_location_[loc] .&& bit_gender_[gen]
         for a ∈ 0:99 # 반복문의 순서 자체는 기록을 위해서 바뀌어선 안 됨
-            μ = validizer(tensor_mortality[a+1, -loc, gen+1] * (1 + (ε * randn())))
+            μ = validizer(tensor_mortality[a+1, gen+1, -loc])
 
             bit_triple = (bit_age_[a] .&& bit_double)
             pidx = findall(bit_triple)
@@ -80,19 +95,19 @@ for t in tbgn:tend
             
             # 이동 시작
             npop = length(pidx)
-            σ = tensor_mobility[aidx, gen+1, :, -loc] # .* (1 .+ (ε * randn(17)))
+            σ = tensor_mobility[aidx, gen+1, :, -loc]
             moved = trunc.(Int64, σ .* npop)
             append!(flow, moved)
             moved = reverse(cumsum(moved))
             for to in 1:17
-                location_[pidx[1:min(npop, moved[to])]] .= (to-18) # 인구수 이상으로는 이동 불가
+                location_[pidx[1:moved[to]]] .= (to-18) # 인구수 이상으로는 이동 불가
+                # location_[pidx[1:min(npop, moved[to])]] .= (to-18) # 인구수 이상으로는 이동 불가
                 # 자연스럽게 만약 다 못간다면 서울이 가장 우선시 됨
             end
             # 이동 끝
 
-            ε_a = ε * randn()
             if gen .&& (15 ≤ a ≤ 45)
-                β = validizer((tensor_fertility[-loc, aidx - 3] * (1 + ε_a)))
+                β = validizer(tensor_fertility[-loc, aidx - 3])
                 birth_location[-loc] += sum(rand(Bernoulli(β), npop))
             end
         end
