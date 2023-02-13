@@ -47,7 +47,7 @@ png(pp07_06, "G:/figure/subfigure/07 0 capital pp07_06.png")
     
 pp07_08 = plot(ylabel = "Number", xlabel = "Year", xticks = [2012, (2020:10:yend)...], xlims = (2012, yend))
 plot!(pp07_08, 2012:yend, netmigrat, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-plot!(pp07_08, 2012:yend, netgrowth, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+plot!(pp07_08, 2012:yend, netgrowth, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "Natural growth")
 
 plot(pp07_02, pp07_06, pp07_04, pp07_08, 
     plot_title = "Capital Area", layout = (2,2), size = (1200, 800),

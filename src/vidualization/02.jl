@@ -22,6 +22,8 @@ y = coordinate.y .- 5 + 0.1cos.(2 * (1:17))
 
 pp02_1_ = []
 for t = 2012:2070
+    d2 = ""
+
     mtrx_mgrn_ = Dict()
     vctr_mgrn = mgrn[:, "y$t"]
     mtrx_mgrn = reshape(sum(reshape(vctr_mgrn, 17,2,17,17), dims = 1:2), 17, 17)

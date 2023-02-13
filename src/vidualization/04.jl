@@ -53,16 +53,16 @@ for k ∈ 1:17
         ylabel = "Number", bgcolor_legend = colorant"#DDDDDD")
     plot!(pp04_06, 2012:yend, birth, fa = .5, fillrange = 0, color = :green, label = "Birth")
     plot!(pp04_06, 2012:yend, -death, fa = .5, fillrange = 0, color = :black, label = "Death")
-    plot!(pp04_06, 2012:yend, birth - death, color = :white, label = "Net growth", lw = 2)
+    plot!(pp04_06, 2012:yend, birth - death, color = :white, label = "Natural growth", lw = 2)
     png(pp04_06, "G:/figure/subfigure/01 0 korea pp01_06.png")
 
     pp04_08 = plot(ylabel = "Number", xlabel = "Year", xticks = [2012, (2020:10:yend)...], xlims = (2012, yend))
     plot!(pp04_08, 2012:yend, netmigrat, lw = 2, fa = .5, fillrange = 0, color = :olive, label = "net migration")
-    plot!(pp04_08, 2012:yend, netgrowth, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "net growth")
+    plot!(pp04_08, 2012:yend, netgrowth, lw = 2, fa = .5, fillrange = 0, color = :darkgreen, label = "Natural growth")
     push!(pp04_08_, pp04_08)
     
     plot(pp04_02, pp04_06, pp04_04, pp04_08, 
-        plot_title = "$k $(name_location[k])", layout = (2,2), size = (1200, 800),
+        plot_title = "$k $(name_location[k])", layout = (2,2), size = (1200, 600),
         leftmargin = 5Plots.mm, dpi = 200)
     png("G:/figure/04 $k $(name_location[k]).png")
 end

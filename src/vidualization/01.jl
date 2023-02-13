@@ -48,7 +48,7 @@ begin
         ylabel = "Number", bgcolor_legend = colorant"#DDDDDD")
     plot!(pp01_06, 2012:yend, birth, fa = .5, fillrange = 0, color = :green, label = "Birth")
     plot!(pp01_06, 2012:yend, -death, fa = .5, fillrange = 0, color = :black, label = "Death")
-    plot!(pp01_06, 2012:yend, birth - death, color = :white, label = "Net growth", lw = 2)
+    plot!(pp01_06, 2012:yend, birth - death, color = :white, label = "Natural growth", lw = 2)
     png(pp01_06, "G:/figure/subfigure/01 0 korea pp01_06.png")
 
     pp01_08 = plot(xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,14,65,99])
@@ -98,3 +98,18 @@ begin
     plot(pp01_13, pp01_14, layout = (2,1), dpi = 200)
     png("G:/figure/01 0 korea 50yo.png")
 end
+
+# 평균연령l50 = zeros(59)
+# 평균연령g50 = zeros(59)
+# for gdf = groupby(rslt, :age)
+#     a = gdf.age[1]
+#     if a < 50
+#         평균연령l50 += gdf.age[1] * ts_sum(gdf)
+#     else
+#         평균연령g50 += gdf.age[1] * ts_sum(gdf)
+#     end
+# end
+# plot(ylims = (0,99), yticks = 0:10:100, ylabel = "Avg. of age", xlabel = "year")
+# plot!(2012:2070, 평균연령l50 ./ 오십미만, color = :navy, label = "< 50")
+# plot!(2012:2070, 평균연령g50 ./ 오십이상, color = :blue, label = "≥ 50")
+# png("50대이상이하평균연령.png")
