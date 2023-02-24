@@ -6,6 +6,8 @@ dead_gdf = groupby(dead, :location)
 
 pp04_04_ = []
 pp04_08_ = []
+netmigrat_ = []
+netgrowth_ = []
 for k ∈ 1:17
     rslt_k = rslt_gdf[k]
     dead_k = dead_gdf[k]
@@ -24,6 +26,8 @@ for k ∈ 1:17
     
     netmigrat = sum(age_migration, dims = 2)
     netgrowth = birth - death
+    push!(netmigrat_, netmigrat)
+    push!(netgrowth_, netgrowth)
     
     pp04_01 = plot(xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,14,65,99])
     plot!(pp04_01, 0:99, df_age.y2020[1:100], label = "2020", lw = 2, color = :black)

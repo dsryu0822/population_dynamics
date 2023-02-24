@@ -1,16 +1,6 @@
 using CSV, DataFrames
 using LinearAlgebra
 
-using Plots, LaTeXStrings
-mm = Plots.mm
-
-
-default(fontfamily = "Computer Modern")
-# plot(rand(10), title = "abcdefu")
-red = colorant"#C00000"
-orange = colorant"#ED7D31"
-yellow = colorant"#FFC000"
-
 function ts_sum(df)
     return sum.(eachcol(select(df, Not([:location, :gender, :age]))))
 end
@@ -27,6 +17,7 @@ function ts_age(df)
     age_h = ts_sum(df[65 .≤ df.age,:])
     return [age_l age_m age_h]
 end
+
 
 name_location = ["Seoul","Busan","Daegu","Incheon","Gwangju","Daejeon","Ulsan","Sejong","Gyeonggi","Gangwon","Chungbuk","Chungnam","Jeonbuk","Jeonnam","Gyeongbuk","Gyeongnam","Jeju"]
 
@@ -46,6 +37,8 @@ for k in 1:n_seed
     dead_[k].age = parse.(Int, replace.(dead_[k].age, '세' => ""))
     mgrn_[k].age = parse.(Int, first.(mgrn_[k].age, 2))
 end
+
+df_age = marginal(rslt, :age)
 
 
 try mkdir("G:/figure") catch IOError println("G:/figure already exists") end

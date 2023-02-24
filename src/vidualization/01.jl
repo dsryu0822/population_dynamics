@@ -12,8 +12,6 @@ begin
     pop = rslt |> ts_sum
     argmaxpop = argmax(pop)
 
-    df_age = marginal(rslt, :age)
-
     오십미만 = filter(:age => age -> (age < 50), rslt) |> ts_sum
     오십이상 = filter(:age => age -> (age ≥ 50), rslt) |> ts_sum
 
