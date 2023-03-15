@@ -1,21 +1,10 @@
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-MET -> CAP
-CAP -> ETC
-CAP -> ETC
-CAP -> ETC
-CAP -> ETC
-CAP -> ETC
-ETC -> MET
+2012 : {
+CAP <- MET: {stroke:"#0E64B2"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP <- ETC: {stroke:"#0E64B2"}
+CAP <- ETC: {stroke:"#0E64B2"}
 
 
 CAP.shape: circle 
@@ -24,3 +13,44 @@ MET.shape: circle
 MET.width: 100 
 ETC.shape: circle 
 ETC.width: 124 
+}
+
+2030 : {
+CAP <- MET: {stroke:"#0E64B2"}
+CAP <- MET: {stroke:"#0E64B2"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP <- ETC: {stroke:"#0E64B2"}
+CAP <- ETC: {stroke:"#0E64B2"}
+MET -> ETC: {stroke:"#C00000"}
+MET -> ETC: {stroke:"#C00000"}
+
+
+CAP.shape: circle 
+CAP.width: 160 
+MET.shape: circle 
+MET.width: 96 
+ETC.shape: circle 
+ETC.width: 122 
+}
+
+2050 : {
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+CAP -> ETC: {stroke:"#C00000"}
+MET -> ETC: {stroke:"#C00000"}
+MET -> ETC: {stroke:"#C00000"}
+
+
+CAP.shape: circle 
+CAP.width: 148 
+MET.shape: circle 
+MET.width: 83 
+ETC.shape: circle 
+ETC.width: 110 
+}
+

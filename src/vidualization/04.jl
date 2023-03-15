@@ -32,7 +32,7 @@ for k ∈ 1:17
     pp04_01 = plot(xlabel = "age", ylabel = "Population", xlims = (0,99), ylims = (0, Inf), xticks = [0,14,65,99])
     plot!(pp04_01, 0:99, df_age.y2020[1:100], label = "2020", lw = 2, color = :black)
     plot!(pp04_01, 0:99, df_age.y2045[1:100], label = "2045", lw = 2, color = :navy)
-    plot!(pp04_01, 0:99, df_age.y2070[1:100], label = "2070", lw = 2, color = :blue)
+    # plot!(pp04_01, 0:99, df_age.y2070[1:100], label = "2070", lw = 2, color = :blue)
     png(pp04_01, "G:/figure/subfigure/04 $k $(name_location[k]) pp04_01.png")
     
     pp04_02 = plot(legend = :topright,

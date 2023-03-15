@@ -44,8 +44,8 @@ namecluster = ["CAP", "MET", "ETC"]
 
 # d2 = "2012 -> 2030 -> 2050 -> 2070\n"
 d2 = ""
-for y = [5,23,43,63]
-    rslt_y = rslt[:, [1,2,3,  4]]
+for y = [5,23,43]
+    rslt_y = rslt[:, [1,2,3,  y-1]]
     mgrn_y = mgrn[:, [1,2,3,4,y]]
     # CM = zeros(Int64, ncluster,ncluster)
     POP = []
@@ -74,7 +74,7 @@ for y = [5,23,43,63]
             else
                 d2 *= "$(namecluster[i]) <- $(namecluster[j]): {stroke:\"#C00000\"}\n"^rep
             end
-            rep = abs((CMY - CMY')[i,j]) ÷ 5000
+            rep = abs((CMY - CMY')[i,j]) ÷ 10000
             if (CMY - CMY')[i,j] > 0
                 d2 *= "$(namecluster[i]) -> $(namecluster[j]): {stroke:\"#0E64B2\"}\n"^rep
             else
@@ -88,5 +88,8 @@ for y = [5,23,43,63]
         d2 *= "$(namecluster[k]).width: $(POP[k]) \n"
     end
     d2 *= "}\n\n"
+    d2 *= "}\n\n"
 end
 write("temp.d2", d2)
+
+run(`d2 -t 1 -l elk temp.d2 G:/figure/d2network.svg`)
