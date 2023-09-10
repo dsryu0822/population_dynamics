@@ -68,17 +68,21 @@ for y = [5,23,43]
     d2 *= "$(y+2007) : {\n"
     for i in 1:ncluster
         for j in (i+1):ncluster
-            rep = abs((CMO - CMO')[i,j]) ÷ 10000
-            if (CMO - CMO')[i,j] > 0
-                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {stroke:\"#C00000\"}\n"^rep
+            rep = (CMO - CMO')[i,j] ÷ 4000
+            if rep > 0
+                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {stroke:\"#C00000\"; stroke-width:$(abs(rep))}\n"
+            elseif rep < 0
+                d2 *= "$(namecluster[i]) <- $(namecluster[j]): {stroke:\"#C00000\"; stroke-width:$(abs(rep))}\n"
             else
-                d2 *= "$(namecluster[i]) <- $(namecluster[j]): {stroke:\"#C00000\"}\n"^rep
+                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {opacity: 0}\n"
             end
-            rep = abs((CMY - CMY')[i,j]) ÷ 10000
-            if (CMY - CMY')[i,j] > 0
-                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {stroke:\"#0E64B2\"}\n"^rep
+            rep = (CMY - CMY')[i,j] ÷ 4000
+            if rep > 0
+                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {stroke:\"#0E64B2\"; stroke-width:$(abs(rep))}\n"
+            elseif rep < 0
+                d2 *= "$(namecluster[i]) <- $(namecluster[j]): {stroke:\"#0E64B2\"; stroke-width:$(abs(rep))}\n"
             else
-                d2 *= "$(namecluster[i]) <- $(namecluster[j]): {stroke:\"#0E64B2\"}\n"^rep
+                d2 *= "$(namecluster[i]) -> $(namecluster[j]): {opacity: 0}\n"
             end
         end
     end
@@ -92,4 +96,4 @@ for y = [5,23,43]
 end
 write("temp.d2", d2)
 
-run(`d2 -t 1 -l elk temp.d2 G:/figure/d2network.svg`)
+run(`d2 -t 1 -l elk temp.d2 G:/figure/d2network3.svg`)

@@ -42,6 +42,8 @@ FERTILITY = ifelse.(ismissing.(FERTILITY), "0", FERTILITY)
 #     simulation(tbgn, tbgn, 2021)
 # end
 
-@threads for seed ∈ 1:10
+# seed ∈ 2012:2020, simulation(seed, seed, 2100): validation
+# seed ∈ [1000]   , simulation(seed, 2021, 2100): 2030년까지 경기도로 유입 인구 2배
+@threads for seed ∈ 1001:1017
     simulation(seed, 2021, 2100)
 end

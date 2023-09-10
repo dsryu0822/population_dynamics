@@ -1,6 +1,4 @@
 using Plots, LaTeXStrings; mm = Plots.mm
-# default(fontfamily = "Computer Modern")
-default(fontfamily = "맑은 고딕")
 using Colors, ColorSchemes
 
 red = colorant"#C00000"

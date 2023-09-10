@@ -96,6 +96,7 @@ for t in tbgn:tend
             # 이동 시작
             npop = length(pidx)
             σ = tensor_mobility[aidx, gen+1, :, -loc]
+            if (( 1000 ≤ seed ≤ 1017 ) && (t ≤ 2030)) σ[seed - 1000] = 2σ[seed - 1000] end
             moved = trunc.(Int64, σ .* npop)
             append!(flow, moved)
             moved = reverse(cumsum(moved))
