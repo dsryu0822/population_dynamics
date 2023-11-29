@@ -54,6 +54,10 @@ xlims = [0,1], ylims = [0, 3], fontsize = 10, size = [600, 1200])
 
 cd("//155.230.155.221/ty/Population")
 
+vec_Pop_ = getproperty.(collect(DATAy[2021]), :PopTotal);
+cosM = vec_Pop_ |> cosine_matrix |> Symmetric;
+findall((cosM .> 0.995)[:, ISO3 .== "ITA"])
+
 ranking = []
 Op_ = []
 for t ∈ ProgressBar(1950:2021)
@@ -63,13 +67,13 @@ for t ∈ ProgressBar(1950:2021)
     push!(Op_, Op)
     push!(ranking, sortperm(Op))
 
-    # stdy = 3Op
-    # color1 = get.(Ref(ColorSchemes.diverging_bwr_55_98_c37_n256), Op)
-    # colorV = color1
-    # graphplot(cosM .> 0.995, names = ISO3, x = stdx, y = stdy,
-    # msa = 0, la = 0.1, nodeshape = :rect, nodecolor = colorV,
-    # xlims = [0,1], ylims = [0, 3], fontsize = 10, size = [600, 1200])
-    # png("$t.png")
+    stdy = 3Op
+    color1 = get.(Ref(ColorSchemes.diverging_bwr_55_98_c37_n256), Op)
+    colorV = color1
+    graphplot(cosM .> 0.995, names = ISO3, x = stdx, y = stdy,
+    msa = 0, la = 0.1, nodeshape = :rect, nodecolor = colorV,
+    xlims = [0,1], ylims = [0, 3], fontsize = 10, size = [600, 1200])
+    png("$t.png")
 end
 _Op = stack(Op_)
 _ranking = stack(ranking)
