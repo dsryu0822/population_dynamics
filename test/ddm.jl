@@ -9,54 +9,123 @@ mm = Plots.mm
 cm = Plots.cm
 default(); default(legend = :none)
 
-function solve(f, x; T = 1000)
+grid(tick, x_ = [0, 1], y_ = [0, 1]) = Base.product(x_[1]:tick:x_[2], y_[1]:tick:y_[2]) |> collect |> vec .|> collect
+
+function solve(f, x; T = 10, h = 1e-2)
     x_ = [x]
-    for t in 1:T
-        push!(x_, x_[end] + 0.01f(x_[end]))
-    end
-    return x_[1:100:end]
+    for t in 1:h:T
+        if (x_[end][1] > xmax) || (x_[end][2] > ymax)
+            break
+        end
+        push!(x_, x_[end] + h*f(x_[end]))
+    end    
+    return x_[1:(length(x_) ÷ 100):end]
+    # return x_
 end
 
 @time include("datacall.jl")
 include("../../DataDrivenModel/src/DDM.jl")
 include("../../setup/Portables.jl")
+include("../../setup/Dynamics.jl")
 
+k = 6
+const xmax = 0.6
+const ymax = 0.35
+resolution = 1000
+qargs = (; title = "k = $k", xlims = [0, xmax], ylims = [0, ymax], xlabel = "young", ylabel = "old", size = [600, 600], formatter = x -> "$(round(100x; digits = 2))%")
 cxcy = cat(eachslice(head(tnsr_yo), dims = 3)..., dims = 2)
 dxdy = cat(eachslice(diff(tnsr_yo, dims = 3), dims = 3)..., dims = 2)
+# quiver(cxcy[1, 1:2:end], cxcy[2, 1:2:end], quiver = (dxdy[1, 1:2:end], dxdy[2, 1:2:end]), α = 0.1, c = :black; qargs...)
 
-k = 2
-qargs = (; title = "k = $k", xlims = [0, 0.5], ylims = [0, 0.3], xlabel = "young", ylabel = "old", size = [600, 600])
-f = SINDy(cxcy', dxdy', λ = 0.01, K = k)
+f = SINDy(cxcy', dxdy', K = k)
+print(f, ["y", "o"])
 
-pos = Base.product(0:.01:.55, 0:.01:0.35) |> collect .|> collect |> vec |> stack
-dir = f.(eachcol(pos)) |> stack
-quiver(pos[1, :], pos[2, :], quiver = (dir[1, :], dir[2, :]), color = :black; qargs...)
-png("240124_k=$k vectorfield.png")
+pos = grid(0.0005, [0, xmax], [0, ymax])
+dir = f.(pos)
 
-arg0x = findall(abs.(dir[1,:]) .< 0.00005)
-arg0y = findall(abs.(dir[2,:]) .< 0.00005)
+arg0x = findall(abs.(getindex.(dir, 1)) .< 0.0001)
+arg0y = findall(abs.(getindex.(dir, 2)) .< 0.0001)
 
 ncln = plot(; qargs...)
-scatter!(ncln, pos[1,arg0x], pos[2,arg0x], color = :red, alpha = 0.5, ms = 1, msw = 0;)
-scatter!(ncln, pos[1,arg0y], pos[2,arg0y], color = :blue, alpha = 0.5, ms = 1, msw = 0;)
+scatter!(ncln, first.(pos[arg0x]), last.(pos[arg0x]), color = :red, alpha = 0.1, ms = 1, msw = 0;)
+scatter!(ncln, first.(pos[arg0y]), last.(pos[arg0y]), color = :blue, alpha = 0.1, ms = 1, msw = 0;)
 
+
+using Clustering
+using StatsBase
+fixedcandy = pos[arg0x ∩ arg0y]
+scatter(ncln, first.(fixedcandy), last.(fixedcandy), color = :black, shape = :x)
+dbscaned = dbscan(stack(fixedcandy), 0.01)
+fixedcandy = fixedcandy[rand.(getproperty.(dbscaned.clusters, :core_indices))]
+# norm.(f.(fixedcandy))
+fixedpoint = [findfixed(f, fc; maxitr = 50000, atol = 1e-8) for fc in fixedcandy]
+
+idx_unfixed = findall(norm.(f.(fixedpoint)) .> 1e-8)
+unfixed = fixedpoint[idx_unfixed]
+gridsearch = [pairwiseadd(uf, grid(0.0001, [-0.01, 0.01], [-0.01, 0.01])) for uf in unfixed]
+
+for (i, j) in enumerate(idx_unfixed)
+    better = norm.(f.(gridsearch[i]))
+    better[argmin(better)]
+    fixedpoint[j] .= gridsearch[i][argmin(better)]
+end
+fixedpoint .=> norm.(f.(fixedpoint))
+
+# fixedpoint = vec.(mean.([pos[:, indices] for indices in getproperty.(dbscaned.clusters, :core_indices)], dims = 2))
+
+using Symbolics
+@variables t x y
+∂x = Differential(x)
+∂y = Differential(y)
+Θxy = Θ([x, y], K = 6)
+∂xΘ = ∂x.(Θxy) .|> expand_derivatives
+∂yΘ = ∂y.(Θxy) .|> expand_derivatives
+
+encode_stability = []
+for j ∈ eachindex(fixedpoint)
+fp = (Dict(x => fixedpoint[j][1], y => fixedpoint[j][2]),)
+J = Float64.([substitute.(∂xΘ, fp) .|> Symbolics.value
+              substitute.(∂yΘ, fp) .|> Symbolics.value]) * Matrix(f.matrix)
+push!(encode_stability, sum(real.(eigen(J).values) .> 0))
+end
+stabiliary_colors = [:black, :gray, :red][encode_stability .+ 1]
+# stabiliary_styles = [:solid, :dot, :dash][encode_stability .+ 1]
+
+θ = 0:1:359
+r = .0001
+
+ring = hcat([fp .+ [(r .* cosd.(θ)) (r .* sind.(θ))]' for fp in fixedpoint]...)
+# ring = Base.product(0:.01:xmax, 0:.01:ymax) |> collect .|> collect |> vec |> stack
 _ncln = deepcopy(ncln)
-fixedcandy = pos[:, abs.(dir[1,:]) .< 0.00001 .&& abs.(dir[2,:]) .< 0.00001]
-fixedpoint = fixedcandy |> eachcol .|> collect
-
-# traj_ = solve(f, fp, T = 10000)
-# plot!(_ncln, first.(traj_), last.(traj_), arrow = true, color = :black)
-
-fp = fixedpoint[3]
-θ = 0:10:359
-ring = fp .+ [0.01cosd.(θ) 0.01sind.(θ)]'
-@showprogress for k in eachindex(θ)
-    traj_ = solve(f, ring[:, k], T = 10000)
-    plot!(_ncln, first.(traj_), last.(traj_), arrow = true, alpha = 0.2, color = :black)
-    for kk in 1:10
-        traj_ = solve(f, traj_[end], T = 10000)
-        plot!(_ncln, first.(traj_), last.(traj_), arrow = true, alpha = 0.2, color = :black)
-    end
+@showprogress for k in axes(ring, 2)
+    traj_ = solve(f, ring[:, k], T = 10)
+    plot!(_ncln, first.(traj_), last.(traj_), arrow = true, lw = 1, color = :black, alpha = 0.1)
+    # scatter!(_ncln, first.(traj_)[[end]], last.(traj_)[[end]], shape = :x, color = :black, alpha = 0.1)
+    # for kk in 1:10
+    #     traj_ = solve(f, traj_[end], T = 10000)
+    #     plot!(_ncln, first.(traj_), last.(traj_), arrow = true, alpha = 0.2, color = :black)
+    # end
 end
 _ncln
-png(_ncln, "240124_k=$k.png")
+scatter!(_ncln, first.(fixedpoint), last.(fixedpoint), mc = stabiliary_colors, ms = 10, msw = 0, txt = "       " .* string.(1:7))
+png("22")
+
+_jplot = []
+for j = 1:7
+xlim, ylim = collect(zip(fixedpoint[j] .- 1.5r, fixedpoint[j] .+ 1.5r))
+push!(_jplot, plot(_ncln, xlims = xlim, ylims = ylim, title = "j = $j"))
+end
+jplot = plot(_jplot..., layout = (2, 4), size = 200*[16, 9])
+png("23")
+run(`explorer $(pwd())`)
+
+@info "end of code"
+# length(65:101)
+# POPy[2020][63]
+# plot(xlabel = "Age", ylabel = "Population (k)", title = "Natural age distribution", xlims = [0, 101], ylims = [0, Inf], xticks = [0, 15, 65])
+# plot!(0:15, POPy[2020][67].PopTotal[1:16], lw = 1, color = 1, fill = 0)
+# plot!(64:100, POPy[2020][67].PopTotal[65:end], lw = 1, color = 2, fill = 0)
+# plot!(0:100, POPy[2020][67].PopTotal, lw = 2, color = :black)
+# png("17")
+# tnsr_yo[:, 63, 71]
+# tnsr_yo[:, 63, 72]
