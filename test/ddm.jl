@@ -14,7 +14,7 @@ grid(tick, x_ = [0, 1], y_ = [0, 1]) = Base.product(x_[1]:tick:x_[2], y_[1]:tick
 function solve(f, x; T = 10, h = 1e-2, shorten = true)
     x_ = [x]
     for t in 1:h:T
-        if !(0 ≤ x_[end][1] ≤ xmax) || !(0 ≤ x_[end][2] ≤ ymax)
+        if !(0 ≤ x_[end][1] ≤ 1000) || !(0 ≤ x_[end][2] ≤ 1000)
             break
         elseif rand() < 0.1
             if norm(f(x_[end])) < 1e-6
@@ -23,7 +23,7 @@ function solve(f, x; T = 10, h = 1e-2, shorten = true)
         end
         push!(x_, x_[end] + h*f(x_[end]))
     end    
-    return shorten ? x_[1:(length(x_) ÷ 100):end] : x_
+    return shorten ? x_[1:max(1, (length(x_) ÷ 100)):end] : x_
 end
 
 # @time include("datacall.jl")
@@ -131,39 +131,43 @@ run(`explorer $(pwd())`)
 
 heatmap(rand([:a, :b, :c], 512,512))
 
-tick = 0.001
-ic_ = grid(tick, [0, xmax], [0, ymax])
+tick = 0.005
+ic_ = grid(tick, [0, 1], [0, 1])
+p2 = scatter(first.(fixedpoint), last.(fixedpoint), mc = stabiliary_colors, ms = 10, msw = 0, txt = "       " .* string.(1:7); qargs...)
+# p2 = plot(; qargs...)
 Z_ = []
-# ic = rand(ic_)
 @showprogress for ic = ic_
-    code = 0
-    endpoint = last(solve(f, ic, T = 1000, shorten = false))
-    if endpoint[1] ≤ 0
-        code = 1
-    elseif endpoint[2] ≤ 0
-        code = 2
-    elseif endpoint[1] > xmax
-        code = 3
-    elseif endpoint[2] > ymax
-        code = 4
-    elseif norm(f(endpoint)) < 1e-6
-        code = 5
-    else
-        code = 6
-    end
-    push!(Z_, ic => code)
-    # push!(Z_, ic => endpoint)
+    sol = solve(f, ic, T = 10000, shorten = false)
+    endpoint = last(sol); push!(Z_, ic => endpoint)
+    # plot!(p2, first.(sol), last.(sol), lw = 1, color = :black, alpha = 0.1)
 end
-CSV.write("basin-3.csv", DataFrame(x0 = first.(first.(Z_)), y0 = last.(first.(Z_)), code = last.(Z_)))
-heatmap(reshape(last.(Z_), length(0:tick:xmax), length(0:tick:ymax))',
-color = [:red, :blue, :pink, :skyblue, :black, :white], size = [600, 600])
-png("basin-3")
+CSV.write("basin.csv", DataFrame(x0 = first.(first.(Z_)), y0 = last.(first.(Z_)), xend = first.(last.(Z_)), yend = last.(last.(Z_))))
+# plot(p2, size = [3000, 3000]); png("temp"); run(`explorer temp.png`)
 
-# reshape(first.(Z_), length(0:tick:xmax), length(0:tick:ymax))
-# cp = palette([:red, :blue, :pink, :skyblue, :black, :white])
-# scatter(first.(first.(Z_)), last.(first.(Z_)), color = cp[last.(Z_)], shape = :sq, msw = 0, ms = 5, size = [600, 600])
-# heatmap(0:tick:xmax, 0:tick:ymax, reshape(last.(Z_), length(0:tick:xmax), length(0:tick:ymax)))
-# heatmap(0:.01:xmax, 0:.01:ymax, reshape(last.(Z_), length(0:.01:xmax), length(0:.01:ymax)))
+function encode(v)
+    if v[1] ≤ 0
+        return 1
+    elseif v[2] ≤ 0
+        return 2
+    elseif v[1] > 1000
+        return 3
+    elseif v[2] > 1000
+        return 4
+    elseif norm([0.1988622170110923, 0.22158154594223625] - v) < .1
+        return 5
+    else
+        return 6
+    end
+end
+# CSV.write("basin.csv", DataFrame(x0 = first.(first.(Z_)), y0 = last.(first.(Z_)), xend = fisrt.(last.(Z_)), yend = last.(last.(Z_))))
+basin_csv = CSV.read("basin.csv", DataFrame)
+
+Z_[encode.(last.(Z_)) .== 3]
+heatmap(reshape(encode.(last.(Z_)), length(0:tick:1), length(0:tick:1))',
+color = [:red, :blue, :pink, :skyblue, :black, :white], size = [600, 600], formatter = x -> "$(x/200)")
+heatmap(reshape(encode.(last.(Z_)), length(0:tick:1), length(0:tick:1))', xlims = [0, 200xmax], ylims = [0, 200ymax],
+color = [:red, :blue, :pink, :skyblue, :black, :white], size = [600, 600], formatter = x -> "$(x/200)")
+
 
 @info "end of code"
 # length(65:101)
@@ -180,7 +184,7 @@ edata = dropmissing(data)
 color_ecnm = get.(Ref(ColorSchemes.plasma), edata.ecnm)
 
 quiver(edata.yng, edata.old, quiver = (edata.dyng, edata.dold), α = 0.1, lw = 2, color = :black; qargs...)
-scatter!(edata.yng, edata.old, edata.ecnm, α = 0.1, color = color_ecnm, msw = 0, ms = 5)
+scatter!(edata.yng, edata.old, α = 0.1, color = color_ecnm, msw = 0, ms = 5)
 
 p1 = plot(; qargs...)
 for dat in eachrow(edata)
@@ -188,3 +192,4 @@ for dat in eachrow(edata)
     , arrow = arrow(:closed), color = get.(Ref(ColorSchemes.plasma), dat.ecnm[1]), α = 0.5)
 end
 p1
+png("25")

@@ -25,6 +25,7 @@ filter!(:ISO3 => x -> (x ∈ DATA_summary.ISO3), DATA_pop)
 GDP = deepcopy(DATA_gdp)
 POP = deepcopy(DATA_pop)
 
+dropmissing!(GDP)
 transform!(groupby(GDP, :Time), :ecnm => (x -> normalize01(log10.(x))) => :ecnm)
 
 cd = DataFrame()
@@ -37,4 +38,5 @@ for k in eachindex(DATA_summary.ISO3)
     append!(cd, DataFrame(; ISO3 = iso3, Time = time, yng = cc[1, 1:(end-1)], old = cc[2, 1:(end-1)], dyng = dd[1, :], dold = dd[2, :]))
 end
 data = outerjoin(GDP, cd, on = [:ISO3, :Time])
+sort!(data, [:ISO3, :Time])
 CSV.write("cached.csv", data)
