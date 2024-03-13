@@ -9,22 +9,26 @@ end
 mm = Plots.mm; cm = Plots.cm;
 default(); default(legend = :none)
 
+@variables t x y
+∂x(f) = Differential(x).(f) .|> expand_derivatives
+∂y(f) = Differential(y).(f) .|> expand_derivatives
+
 grid(tick::Float64, x_ = [0, 1], y_ = [0, 1]) = Base.product(x_[1]:tick:x_[2], y_[1]:tick:y_[2]) |> collect |> vec .|> collect
 grid(tick::Int64, x_ = [0, 1], y_ = [0, 1]) = Base.product(LinRange(x_[1],x_[2],tick), LinRange(y_[1],y_[2],tick)) |> collect |> vec .|> collect
 square(X) = reshape(X, isqrt(length(X)), isqrt(length(X)))
-function solve(f, x; T = 10, h = 1e-2, shorten = true)
-    x_ = [x]
-    for t in 1:h:T
-        if !(0 ≤ x_[end][1] ≤ xmax) || !(0 ≤ x_[end][2] ≤ ymax)
+function solve(f, ic; tend = 10, h = 1e-2, dense = true)
+    idx_end = length(1:h:tend)
+    traj = zeros(2, idx_end); traj[:,1] = ic
+    for tk in 2:(idx_end-1)
+        if (!(0 ≤ traj[1,tk-1] ≤ xmax) || !(0 ≤ traj[2,tk-1] ≤ ymax)) ||
+            (mod(tk, 100) == 0 && (norm(f(traj[:,tk-1])) < 1e-8))
+            traj = traj[:,1:tk]
             break
-        elseif rand() < 0.01
-            if norm(f(x_[end])) < 1e-6
-                break
-            end
         end
-        push!(x_, x_[end] + h*f(x_[end]))
-    end    
-    return shorten ? x_[1:max(1, (length(x_) ÷ 100)):end] : x_
+        traj[:,tk] = traj[:,tk-1] + h*f(traj[:,tk-1])
+    end
+    traj = collect(eachcol(traj))[1:(end-1)]
+    return dense ? traj : traj[1:(idx_end ÷ 100):end]
 end
 
 @time include("datacall.jl")
@@ -32,49 +36,49 @@ include("../../DataDrivenModel/src/DDM.jl")
 include("../../setup/Portables.jl")
 include("../../setup/Dynamics.jl")
 
+const xmax = 0.7; const ymax = 0.7; resolution = 200
+qargs = (; xlims = [0, xmax], ylims = [0, ymax], xlabel = "young", ylabel = "old", size = [800, 800], framestyle = :box, formatter = x -> "$(round(100x; digits = 2))%")
+layer_ = [plot(; qargs...) for _ in 1:6]
+
 ### SINDy
+setN = 6
 odata = dropmissing(select(data, Not(:ecnm)))
 # data[data.ISO3 .== "KOR", :]
 sort(sort(odata, :Time), :ISO3)
-f = SINDy(odata, [:dyng, :dold], [:yng, :old], N = 5)
+f = SINDy(odata, [:dyng, :dold], [:yng, :old], N = setN)
 print(f, ["y", "o"])
-
-const xmax = 0.7; const ymax = 0.7; resolution = 200
-qargs = (; xlims = [0, xmax], ylims = [0, ymax], xlabel = "young", ylabel = "old", size = [800, 800], framestyle = :box, formatter = x -> "$(round(100x; digits = 2))%")
-layer_ = [plot(; qargs...) for _ in 1:5]
+Θxy = Θ([x, y], N = setN)
+∂xΘ = ∂x(Θxy)
+∂yΘ = ∂y(Θxy)
 
 ### Find fixed points
 pos = grid(resolution, [0, xmax], [0, ymax])
-dir = f.(pos)
-fixedcandy = pos[norm.(dir) .< 1e-3]
-dbscaned = dbscan(stack(fixedcandy), 0.01)
-fixedcandy = fixedcandy[rand.(getproperty.(dbscaned.clusters, :core_indices))]
-fixedpoint = [findfixed(f, fc; maxitr = 50000, atol = 1e-8) for fc in fixedcandy]
-fixedpoint = [findfixed(f, fc; maxitr = 50000, atol = 1e-8, h = 1e-6) for fc in fixedpoint]
-idx_unfixed = findall(norm.(f.(fixedpoint)) .> 1e-8)
-unfixed = fixedpoint[idx_unfixed]
-gridsearch = [pairwiseadd(uf, grid(100, [-0.01, 0.01], [-0.01, 0.01])) for uf in unfixed]
-# gridsearch = [pairwiseadd(uf, [randn(2) for _ in 1:1000]) for uf in unfixed]
-for (i, j) in enumerate(idx_unfixed)
-    better = norm.(f.(gridsearch[i]))
-    fixedpoint[j] .= gridsearch[i][argmin(better)]
+function eachfixed(f, pos)
+    # slowpoints = pos[norm.(f.(pos)) .< 1e-3]
+    slowpoints = [findfixed(f, maxitr = 1000, sp) for sp in pos[norm.(f.(pos)) .< 1e-3]]
+    # scatter(first.(slowpoints), last.(slowpoints))
+    dbscaned = dbscan(stack(slowpoints), 1e-2)
+    fixedcandy = slowpoints[rand.(getproperty.(dbscaned.clusters, :core_indices))]
+    @info "$(length(fixedcandy)) fixed points will be found"
+    fixedpoint = [findfixed(f, fc; maxitr = 100000, atol = 1e-8, h = 1e-6) for fc in fixedcandy]
+    idx_unfixed = findall(norm.(f.(fixedpoint)) .> 1e-8)
+    unfixed = fixedpoint[idx_unfixed]
+    gridsearch = [pairwiseadd(uf, grid(100, [-0.01, 0.01], [-0.01, 0.01])) for uf in unfixed]
+    for (i, j) in enumerate(idx_unfixed)
+        better = norm.(f.(gridsearch[i]))
+        fixedpoint[j] .= gridsearch[i][argmin(better)]
+    end
+    return fixedpoint
 end
+fixedpoint = eachfixed(f, pos)
 fixedpoint .=> norm.(f.(fixedpoint))
 fp0 = [0.19888149603646155, 0.22155592768409718]
-# heatmap(square(log10.(norm.(dir)))')
 
 ### Stability analysis
-@variables t x y
-∂x(f) = Differential(x).(f) .|> expand_derivatives
-∂y(f) = Differential(y).(f) .|> expand_derivatives
-Θxy = Θ([x, y], N = 6)
-∂xΘ = ∂x(Θxy)
-∂yΘ = ∂y(Θxy)
 eigenvalues = []
-for j ∈ eachindex(fixedpoint)
-    fp = (Dict(x => fixedpoint[j][1], y => fixedpoint[j][2]),)
-    J = Float64.([substitute.(∂xΘ, fp) .|> Symbolics.value
-                substitute.(∂yΘ, fp) .|> Symbolics.value]) * Matrix(f.matrix)
+for fp in fixedpoint
+    xy = Dict((x, y) .=> fp)
+    J = Symbolics.value.(substitute.([∂xΘ; ∂yΘ], Ref(xy)) * f.matrix)
     push!(eigenvalues, eigen(J).values)
 end
 encode_stability = sum.(map(x -> x .> 0, real.(eigenvalues))) .+ 1
@@ -84,40 +88,24 @@ scatter!(layer_[2], first.(fixedpoint), last.(fixedpoint), mc = stabiliary_color
 ### Separatrix
 traj_ = []
 layer_[3] = deepcopy(layer_[1])
-@showprogress for ic = grid(20, [0, .60], [0, .35])
-    sol = solve(f, ic, T = 10000, shorten = false)
+# pos_basin = grid(10, [0, .60], [0, .35])
+pos_basin = grid(100, [0, .7], [0, .7])
+@showprogress for ic = pos_basin
+    sol = solve(f, ic, tend = 10000, dense = true)
     push!(traj_, ic => last(sol))
-    if any(sol[2] .< 0) continue end
+    if (ic[1] > .5) || (ic[2] > .4) continue end
     plot!(layer_[3], first.(sol), last.(sol), lw = 1, color = :black, alpha = 0.1)
 end
-png(layer_[3], "layer_[3].png")
 basin = DataFrame(x0 = first.(first.(traj_)), y0 = last.(first.(traj_)), xend = first.(last.(traj_)), yend = last.(last.(traj_)))
 # CSV.write("basin.csv", basin); basin = CSV.read("basin.csv", DataFrame)
 
-### Some trajectories
-layer_3 = deepcopy(layer_[1]);
-sol = solve(f, [.20, .55], T = 1.1, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.40, .50], T = 1.1, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.12, .34], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.25, .34], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.13, .34], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.16, .34], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.50, .20], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.20, .11], T = 57, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.30, .10], T = 75, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.20, .10], T = 75, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.06, .10], T = 10, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.50, .10], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.45, .08], T = 300, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.40, .05], T = 50, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.60, .03], T = 5, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-sol = solve(f, [.30, .03], T = 50, shorten = false); plot!(layer_3, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
-png(layer_3, "layer_3.png")
-
 ### Basin of attraction
-temp = square((0.19.< basin.xend .< 0.222) .&& (0.19 .< basin.yend .< 0.222) .&& (basin.y0 .< 0.65))'
+layer_[4] = deepcopy(layer_[1])
+temp = square((0.198.< basin.xend .< 0.199) .&& (0.220 .< basin.yend .< 0.222) .&& (basin.y0 .< 0.65))'
+# scatter(first.(pos_basin[vec(temp)]), last.(pos_basin[vec(temp)]))
 temp = (circshift(temp, [1,0]) + circshift(temp, [-1,0]) + circshift(temp, [0,1]) + circshift(temp, [0,-1]))
-points = pos[vec((temp .== 3)')]
+points = pos_basin[vec((temp .== 3)')]
+# scatter(first.(points), last.(points))
 points = points[sortperm([atan((pt - fp0)...) for pt in points])]
 push!(points, points[1])
 plgn = DataFrame(stack(points, dims = 1), :auto) # CSV.write("plgn.csv", plgn);
@@ -137,11 +125,36 @@ end
 g = SINDy(edata, [:dyng, :dold], [:yng, :old, :ecnm], N = 6)
 print(g, ["y", "o", "e"])
 
-candy_ = []
-@showprogress for ee = 0:0.01:1.0
-    dir_e = g.(pos .⊕ [ee])
-    candy = pos[log10.(norm.(dir_e)) .< -4]
-    append!(candy_, candy .⊕ [ee])
+png.(layer_, ["layer_[$(k)].png" for k in 1:6])
+
+# candy_ = []
+# @showprogress for ee = 0:0.01:1.0
+#     dir_e = g.(pos .⊕ [ee])
+#     candy = pos[log10.(norm.(dir_e)) .< -4]
+#     append!(candy_, candy .⊕ [ee])
+# end
+# scatter(first.(candy_), getindex.(candy_, 2), last.(candy_); qargs..., color = get(ColorSchemes.diverging_linear_bjr_30_55_c53_n256, last.(candy_)), xlims = [0.1, 0.5], ylims = [0.0, 0.2], zlabel = "economy", msw = 0)
+# scatter(first.(candy_), getindex.(candy_, 2), color = get(ColorSchemes.diverging_linear_bjr_30_55_c53_n256, last.(candy_)); qargs..., xlims = [0.1, 0.5], ylims = [0.0, 0.2], msw = 0)
+
+### Some trajectories
+layer_[6] = deepcopy(layer_[1]);
+function trajectory!(inputplot, ic, tend)
+    sol = solve(f, ic, tend = tend, dense = true)
+    plot!(inputplot, first.(sol), last.(sol), lw = 1, color = :black, arrow = true);
 end
-scatter(first.(candy_), getindex.(candy_, 2), last.(candy_); qargs..., color = get(ColorSchemes.diverging_linear_bjr_30_55_c53_n256, last.(candy_)), xlims = [0.1, 0.5], ylims = [0.0, 0.2], zlabel = "economy", msw = 0)
-scatter(first.(candy_), getindex.(candy_, 2), color = get(ColorSchemes.diverging_linear_bjr_30_55_c53_n256, last.(candy_)); qargs..., xlims = [0.1, 0.5], ylims = [0.0, 0.2], msw = 0)
+trajectory!(layer_[6], [.20, .55], 1.1)
+trajectory!(layer_[6], [.40, .50], 1.1)
+trajectory!(layer_[6], [.12, .34], 5)
+trajectory!(layer_[6], [.25, .34], 5)
+trajectory!(layer_[6], [.13, .34], 5)
+trajectory!(layer_[6], [.16, .34], 5)
+trajectory!(layer_[6], [.50, .20], 5)
+trajectory!(layer_[6], [.20, .11], 57)
+trajectory!(layer_[6], [.30, .10], 75)
+trajectory!(layer_[6], [.20, .10], 75)
+trajectory!(layer_[6], [.06, .10], 10)
+trajectory!(layer_[6], [.50, .10], 5)
+trajectory!(layer_[6], [.45, .08], 300)
+trajectory!(layer_[6], [.40, .05], 50)
+trajectory!(layer_[6], [.60, .03], 5)
+trajectory!(layer_[6], [.30, .03], 50)
