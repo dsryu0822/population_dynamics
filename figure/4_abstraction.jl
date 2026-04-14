@@ -10,23 +10,25 @@ data_ = Dict(unique(data.ISO3) .=> collect(groupby(data, :ISO3)))
 TD_ = [data[data.fold .!= k, :] for k in sort(unique(data.fold))]
 VD_ = [data[data.fold .== k, :] for k in sort(unique(data.fold))]
 
-pythonplot()
+selected = ["CHN", "IND", "USA", "IDN", "BRA", "RUS", "JPN", "DEU", "ITA", "FRA", "KOR", "THA", "MEX", "BGD", "PAK", "TUR", "NGA", "ARG", "EGY", "AUS", "TWN", "ZAF", "ETH", "PRK", "PER", "CHL", "HUN", "UZB", "TZA", "FIN", "KAZ", "IRQ", "ISR", "GHA", "NOR", "KHM", "WGA", "HRV", "NZL", "AZE", "SAU", "PRI", "SGP", "IRL", "AZE", "BOL", "SEN", "NER", "LTU", "URY", "LBN", "HTI", "SOM", "SVN", "PAN", "BEN", "ARM", "EST", "TKM", "BDI", "ZMB", "CYP", "XKX", "JAM", "CAF", "REU", "KWT", "LSO", "TLS", "GMB", "MLT", "MNE", "ISL", "FIL", "SWZ", "BRB", "ESH", "QAT", "SLB", "CUW", "NCL", "BRN", "GUM", "BLZ", "ABW", "VUT"]
 plt_rf = plot(lims = [1, 6])
 for DAT in groupby(data, :ISO3)
     uc = first(DAT.fold)
-    plot!(plt_rf, DAT.x, DAT.y, color = uc, label = :none, alpha = .5, arrow = Plots.arrow(:open, :head, .6, .6)) #, text = DAT.ISO3[1])
+    un = first(DAT.ISO3); if un ∉ selected continue end
+    plot!(plt_rf, DAT.x, DAT.y, color = uc, label = :none, alpha = .5, arrow = Plots.arrow(:closed, :head, .6, .6)) #, text = DAT.ISO3[1])
     # scatter!(plt_rf, DAT.x[[end]], DAT.y[[end]], color = uc, label = "data", msw = 0, alpha = .5) #, text = DAT.ISO3[1])
 end
 plot(plt_rf, size = [400, 400])
 
-trajx = Matrix(CSV.read("data/trajx2.csv", DataFrame))'
-trajy = Matrix(CSV.read("data/trajy2.csv", DataFrame))'
+trajx = Matrix(CSV.read("data/trajx2.csv", DataFrame))'[1:2:end, 1:2:end]
+trajy = Matrix(CSV.read("data/trajy2.csv", DataFrame))'[1:2:end, 1:2:end]
 plt_vf = plot(lims = [1, 6])
 for k in axes(trajx, 1)
-    plot!(plt_vf, trajx[k, :], trajy[k, :], color = :black, label = :none, alpha = .5, arrow = Plots.arrow(:head, .6, .6))
-    plot!(plt_vf, trajx[k, :], trajy[k, :], color = :black, label = :none, alpha = .5, arrow = Plots.arrow(:head, .6, .6))
+    plot!(plt_vf, trajx[k, :], trajy[k, :], color = :black, label = :none, alpha = .5, arrow = Plots.arrow(:open, .6, .6))
+    plot!(plt_vf, trajx[k, :], trajy[k, :], color = :black, label = :none, alpha = .5, arrow = Plots.arrow(:open, .6, .6))
     # scatter!(plt_vf, trajx[k, [end]], trajy[k, [end]], color = :black, ms = 3, alpha = .5)
 end
+plot(plt_vf, size = [400, 400])
 
 x_ = 0:.005:7
 y_ = 0:.005:7
