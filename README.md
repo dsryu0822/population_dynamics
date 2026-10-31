@@ -21,4 +21,9 @@
    - [GDP per capita, 2021](https://ourworldindata.org/grapher/gdp-per-capita-worldbank): No data before 1990 and only 129 countries have full data.
  - macrotrends
    - [World GDP Growth Rate 1961-2023](https://www.macrotrends.net/countries/WLD/world/gdp-growth-rate): 1961-2022.
- - ✅ [GDP per capita (current US$)](https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?end=2024&start=1960)
+ - ✅ [GDP per capita (current US$)](https://data.worldbank.org/indicator/NY.GDP.PCAP.CD)
+
+
+## Others
+
+ - ✅ [Land Area (sq. km)](https://data.worldbank.org/indicator/AG.LND.TOTL.K2?view=map)
