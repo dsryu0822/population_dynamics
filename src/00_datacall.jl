@@ -48,4 +48,12 @@ landarea.a2024 .= tryparse.(Float64, landarea.a2024)
 landarea = landarea[.!isnothing.(landarea.a2024), :]
 
 
-JLD2.@save "data.jld2" ISO3 iso3 gdppc landarea
+"""''''''''''''''''''''''''''''''''''''''''''''''''''
+
+            human development index
+
+''''''''''''''''''''''''''''''''''''''''''''''''''"""
+
+hdi = rename(CSV.read("data/HDR25_Composite_indices_complete_time_series.csv", DataFrame), ["ISO3", "HDI"])
+
+JLD2.@save "data.jld2" ISO3 iso3 gdppc landarea hdi

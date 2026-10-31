@@ -338,6 +338,97 @@ function model_scores(f, train, test; vars = [:x, :y, :z])
     return sqrt.(totals ./ counts)..., rows
 end
 
+"""
+    validate(f)
+
+Save the current test forecasts as `<model binding>.jpg` in the project root.
+Use the same recursive forecasts as model_scores, starting from the training data.
+Countries are ordered by ISO3 in a 7×23 grid, with x, y, z stacked per country.
+Year labels are shared at the bottom; y limits round outward to tenths.
+Black is observed data; red is predicted data. Return nothing.
+"""
+function validate(f)
+    bindings = [name for name in names(@__MODULE__; all = true)
+        if isdefined(@__MODULE__, name) && getfield(@__MODULE__, name) === f]
+    isempty(bindings) && throw(ArgumentError("Assign the model to a global name before calling validate."))
+    # Prefer f1, f2, ... over incidental aliases left in an interactive session.
+    name = first(sort(bindings; by = n -> (!occursin(r"^f\d+$", string(n)), string(n))))
+    ids = sort(collect(keys(test)))
+    @assert length(ids) == 161 && all(nrow(test[id]) == 5 for id in ids)
+    # Draw in pixel-based panel coordinates: GR's default tick-label offsets
+    # otherwise grow with the entire 23-column image rather than each panel.
+    gr = Plots.GR
+    width, height = 23 * 280, 7 * 350
+    canvas = plot(size = (width, height), axis = false, framestyle = :none, margin = 0 * Plots.mm)
+    Plots.prepare_output(canvas)
+    Plots.gr_display(canvas)
+    memory = rc_memory(f)
+    previous = memory === nothing ? nothing : copy(memory.r)
+    gr.savestate()
+    gr.beginprint(normpath(joinpath(@__DIR__, "..", "$name.jpg")))
+    try
+        Plots.gr_display(canvas, 1, false)
+        gr.selntran(0)
+        gr.setscale(0)
+        gr.setclip(0)
+        gr.settextfontprec(105, 3)
+        gr.settextcolorind(1)
+        gr.setcolorrep(1000, 0.88, 0.88, 0.88)
+        for (i, id) in enumerate(ids)
+            actual = Matrix(test[id][:, vrbl])
+            predicted = forecast(f, Matrix(train[id][:, vrbl]), nrow(test[id]))
+            years = test[id].t
+            left = (mod1(i, 23) - 1) * 280 + 60
+            right = left + 200
+            top = height - ((i - 1) ÷ 23) * 350
+            gr.setcharheight(13 / width)
+            gr.settextalign(2, 3)
+            gr.text((left + right) / (2width), (top - 12) / width, id)
+            for (j, var) in enumerate(vrbl)
+                bottom, upper = top - 106 - (j - 1) * 97, top - 30 - (j - 1) * 97
+                values = filter(isfinite, [actual[:, j]; predicted[:, j]])
+                low, high = floor(Int, 10minimum(values)), ceil(Int, 10maximum(values))
+                high == low && (high += 1)
+                ticks = unique([low, (low + high) ÷ 2, high])
+                xs = (left .+ (years .- first(years)) ./ (last(years) - first(years)) .* (right - left)) ./ width
+                gr.setcharheight(9 / width)
+                for tick in ticks
+                    y = (bottom + (tick - low) / (high - low) * (upper - bottom)) / width
+                    gr.setlinecolorind(1000)
+                    gr.setlinewidth(0.2)
+                    gr.polyline([left, right] ./ width, [y, y])
+                    gr.setlinecolorind(1)
+                    gr.polyline([left - 3, left] ./ width, [y, y])
+                    gr.settextalign(3, 3)
+                    gr.text((left - 6) / width, y, string(tick / 10))
+                end
+                gr.setlinecolorind(1)
+                gr.polyline([right, left, left] ./ width, [bottom, bottom, upper] ./ width)
+                gr.settextalign(2, 1)
+                for k in (1, length(years))
+                    gr.polyline([xs[k], xs[k]], [bottom - 3, bottom] ./ width)
+                    j == 3 && gr.text(xs[k], (bottom - 6) / width, string(years[k]))
+                end
+                gr.settextalign(1, 1)
+                gr.text((left + 5) / width, (upper - 4) / width, string(var))
+                for (series, color) in ((actual[:, j], 1), (predicted[:, j], 2))
+                    finite = isfinite.(series)
+                    ys = (bottom .+ (10series[finite] .- low) ./ (high - low) .* (upper - bottom)) ./ width
+                    gr.setlinecolorind(color)
+                    gr.setlinewidth(0.4)
+                    count(finite) >= 2 && gr.polyline(xs[finite], ys)
+                end
+            end
+        end
+        gr.updatews()
+    finally
+        gr.endprint()
+        gr.restorestate()
+        memory === nothing || (memory.r .= previous)
+    end
+    return nothing
+end
+
 # Fixed points and local stability, including the full RC state.
 function numerical_jacobian(f, u)
     J = zeros(length(f(u)), length(u))
@@ -781,4 +872,52 @@ function run_model_grid(kind, specs, train, test, output; resume = true, vars = 
                 test_mode = "recursive", training_device = training_device)); cols = :union)
     end
     return table
+end
+
+# Geometry in the three-dimensional log10 population state space.
+"""
+    getplane(x1, x2, x3)
+
+Return `[a, b, c, d]` for the plane `a*x + b*y + c*z + d = 0`.
+The normal has unit length and its largest-magnitude component is positive.
+Three distinct, non-collinear finite points are required.
+"""
+function getplane(x1, x2, x3)
+    p1, p2, p3 = map(p -> vec(Float64.(collect(p))), (x1, x2, x3))
+    all(length(p) == 3 for p in (p1, p2, p3)) ||
+        throw(DimensionMismatch("Each point must have three coordinates."))
+    all(all(isfinite, p) for p in (p1, p2, p3)) ||
+        throw(ArgumentError("Point coordinates must be finite."))
+    u, v = p2 - p1, p3 - p1
+    nu, nv = norm(u), norm(v)
+    nu > 0 && nv > 0 || throw(ArgumentError("The three points must be distinct and non-collinear."))
+    normal = cross(u / nu, v / nv)
+    area = norm(normal)
+    isfinite(area) && area > sqrt(eps(Float64)) ||
+        throw(ArgumentError("The three points are collinear or too nearly collinear to define a stable plane."))
+    normal /= area
+    normal[argmax(abs.(normal))] < 0 && (normal = -normal)
+    return [normal; -dot(normal, p1)]
+end
+
+"""
+    proj(x, plane)
+
+Return `(point = projected_point, distance = perpendicular_distance)`.
+`plane` is `[a, b, c, d]`, as returned by `getplane`; scaled coefficients also work.
+Distances use the same coordinates as `x`, here log10 population.
+The result also supports `point, distance = proj(x, plane)`.
+"""
+function proj(x, plane)
+    point, coefficients = vec(Float64.(collect(x))), vec(Float64.(collect(plane)))
+    length(point) == 3 && length(coefficients) == 4 ||
+        throw(DimensionMismatch("Expected a three-coordinate point and four plane coefficients."))
+    all(isfinite, point) && all(isfinite, coefficients) ||
+        throw(ArgumentError("Point and plane coefficients must be finite."))
+    normal = coefficients[1:3]
+    scale = norm(normal)
+    isfinite(scale) && scale > 0 || throw(ArgumentError("The plane normal must be nonzero and finite."))
+    normal /= scale
+    signed_distance = dot(normal, point) + coefficients[4] / scale
+    return (point = point - signed_distance * normal, distance = abs(signed_distance))
 end

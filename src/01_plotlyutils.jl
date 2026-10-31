@@ -1,22 +1,19 @@
-models = unique(result_fps.model)
 
-traces = join((
-    begin
-        sub = result_fps[result_fps.model .== m, :]
-        """{type: "scatter3d", mode: "markers", name: "$m",
-            x: $(js(sub.x)), y: $(js(sub.y)), z: $(js(sub.z)),
-            marker: {size: 3}}"""
-    end
-    for m in models
-), ",")
+js(v::AbstractVector{<:Real}) = "[" * join(v, ",") * "]"
+js(v::AbstractVector) = "[" * join(("\"$x\"" for x in v), ",") * "]"
 
-plotly_html(
-    "[" * traces * "]",
-    """{
-      scene: {
-        xaxis: {range: [5, 9]},
-        yaxis: {range: [5, 9]},
-        zaxis: {range: [5, 9]}
-      }
-    }""",
-)
+function plotly_html(traces::String, layout::String = "{}"; file = "plot.html")
+    write(file, """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    </head>
+    <body>
+      <div id="plot" style="width:100%;height:95vh"></div>
+      <script>Plotly.newPlot("plot", $traces, $layout);</script>
+    </body>
+    </html>
+    """)
+end
