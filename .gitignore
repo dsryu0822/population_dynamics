@@ -1,3 +1,5 @@
 REPL.jl
 *.png
 archive/
+data
+*.jld2
